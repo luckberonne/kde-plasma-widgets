@@ -1,0 +1,20 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Lucas"
+            }
+        ],
+        "Category": "Date and Time",
+        "Description": "Reloj con paisaje de montañas, hora y fecha en español",
+        "Description[es]": "Reloj con paisaje de montañas, hora y fecha en español",
+        "EnabledByDefault": true,
+        "Icon": "clock",
+        "Id": "com.lucas.digitalclock",
+        "Name": "Scenic Clock",
+        "Name[es]": "Reloj Panorámico",
+        "Version": "2.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}
