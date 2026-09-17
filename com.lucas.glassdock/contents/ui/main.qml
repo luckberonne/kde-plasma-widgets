@@ -34,6 +34,7 @@ PlasmoidItem {
     // Posición del puntero sobre el eje largo del dock (-1000 = sin hover).
     property real pointer: -1000
     property int focusedIndex: -1
+    property int dropIndex: -1
 
     preferredRepresentation: fullRepresentation
 
@@ -160,6 +161,7 @@ PlasmoidItem {
                 readonly property bool isLauncher: model.IsLauncher === true
                 readonly property var winIds: model.WinIdList !== undefined ? model.WinIdList : []
                 readonly property bool isGroup: model.IsGroupParent === true
+                readonly property var launcherUrl: model.LauncherUrlWithoutIcon
                 readonly property string appName: model.AppName ? model.AppName : model.display
                 readonly property string title: model.display ? model.display : ""
                 readonly property var iconSource: model.decoration
@@ -211,6 +213,17 @@ PlasmoidItem {
                     property real hop: 0
                     NumberAnimation { target: bounceAnim; property: "hop"; to: root.baseIcon * 0.45; duration: 220; easing.type: Easing.OutQuad }
                     NumberAnimation { target: bounceAnim; property: "hop"; to: 0; duration: 380; easing.type: Easing.OutBounce }
+                }
+
+                // Realce del destino mientras se arrastra algo encima.
+                Rectangle {
+                    anchors.centerIn: icon
+                    width: icon.width * 1.25
+                    height: width
+                    radius: Kirigami.Units.cornerRadius
+                    color: Kirigami.Theme.highlightColor
+                    opacity: root.dropIndex === dockItem.index ? 0.35 : 0
+                    Behavior on opacity { NumberAnimation { duration: 120 } }
                 }
 
                 // Punto indicador de ventana abierta.
@@ -323,6 +336,60 @@ PlasmoidItem {
         }
     }
 
+
+    // Soltar archivos sobre un icono los abre con esa aplicación. Si te quedás
+    // un momento encima sin soltar, la ventana se trae al frente (spring-loading)
+    // para poder soltar directamente adentro.
+    DropArea {
+        id: dropArea
+        anchors.fill: parent
+        z: 10
+
+        Timer {
+            id: springTimer
+            interval: 750
+            onTriggered: {
+                if (root.dropIndex < 0) return
+                const t = repeater.itemAt(root.dropIndex)
+                if (t && !t.isLauncher) tasksModel.requestActivate(tasksModel.makeModelIndex(root.dropIndex))
+            }
+        }
+
+        function updateTarget(x, y) {
+            const pos = root.vertical ? y : x
+            const i = root.indexAt(pos)
+            root.pointer = pos          // el dock también se magnifica al arrastrar
+            if (i !== root.dropIndex) {
+                root.dropIndex = i
+                springTimer.restart()
+            }
+        }
+
+        onPositionChanged: drag => updateTarget(drag.x, drag.y)
+        onEntered: drag => {
+            if (!drag.hasUrls) { drag.accepted = false; return }
+            updateTarget(drag.x, drag.y)
+        }
+        onExited: {
+            springTimer.stop()
+            root.dropIndex = -1
+            root.pointer = -1000
+        }
+
+        onDropped: drop => {
+            springTimer.stop()
+            const target = root.dropIndex
+            root.dropIndex = -1
+            root.pointer = -1000
+            if (target < 0 || !drop.hasUrls) return
+
+            const t = repeater.itemAt(target)
+            tasksModel.requestOpenUrls(tasksModel.makeModelIndex(target), drop.urls)
+            if (t) t.bounce()
+            drop.accept(Qt.CopyAction)
+        }
+    }
+
     QQC2.Menu {
         id: contextMenu
         property int taskIndex: -1
@@ -335,9 +402,10 @@ PlasmoidItem {
         QQC2.MenuItem {
             text: contextMenu.isLauncher ? i18n("Quitar del dock") : i18n("Fijar al dock")
             onTriggered: {
-                const idx = tasksModel.makeModelIndex(contextMenu.taskIndex)
-                if (contextMenu.isLauncher) tasksModel.requestRemoveLauncher(idx)
-                else tasksModel.requestAddLauncher(idx)
+                const t = repeater.itemAt(contextMenu.taskIndex)
+                if (!t) return
+                if (contextMenu.isLauncher) tasksModel.requestRemoveLauncher(t.launcherUrl)
+                else tasksModel.requestAddLauncher(t.launcherUrl)
             }
         }
         QQC2.MenuSeparator {}
