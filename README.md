@@ -23,6 +23,7 @@ Panel de métricas con anillos de progreso para CPU, RAM, GPU dedicada (NVIDIA),
 - GPU integrada AMD vía `amdgpu` (lm-sensors) y `gpu_busy_percent` (sysfs).
 - Uso de disco de la ruta que elijas (por defecto `/`).
 - Representación compacta para el panel (anillos pequeños) con tooltip detallado al pasar el mouse, y representación completa para el escritorio.
+- Diseño horizontal (fila) o vertical (columna) a elección, para acomodarlo mejor según el espacio del escritorio.
 - Intervalo de actualización configurable.
 
 ### Requisitos

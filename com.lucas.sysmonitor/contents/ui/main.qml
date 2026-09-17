@@ -10,8 +10,10 @@ PlasmoidItem {
 
     Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground
 
-    switchWidth: Kirigami.Units.gridUnit * 24
-    switchHeight: Kirigami.Units.gridUnit * 8
+    readonly property bool layoutVertical: Plasmoid.configuration.layoutVertical
+
+    switchWidth: layoutVertical ? Kirigami.Units.gridUnit * 8 : Kirigami.Units.gridUnit * 24
+    switchHeight: layoutVertical ? Kirigami.Units.gridUnit * 28 : Kirigami.Units.gridUnit * 8
 
     toolTipMainText: "Monitor del sistema"
     toolTipTextFormat: Text.RichText
@@ -205,16 +207,22 @@ PlasmoidItem {
     fullRepresentation: Item {
         id: view
 
-        Layout.minimumWidth: Kirigami.Units.gridUnit * 24
-        Layout.minimumHeight: Kirigami.Units.gridUnit * 8
-        Layout.preferredWidth: Kirigami.Units.gridUnit * 36
-        Layout.preferredHeight: Kirigami.Units.gridUnit * 11
+        readonly property bool vertical: root.layoutVertical
 
-        readonly property real gaugeSize: Math.max(48, Math.min(view.height * 0.62, view.width / 6.4))
+        Layout.minimumWidth: vertical ? Kirigami.Units.gridUnit * 8 : Kirigami.Units.gridUnit * 24
+        Layout.minimumHeight: vertical ? Kirigami.Units.gridUnit * 28 : Kirigami.Units.gridUnit * 8
+        Layout.preferredWidth: vertical ? Kirigami.Units.gridUnit * 11 : Kirigami.Units.gridUnit * 36
+        Layout.preferredHeight: vertical ? Kirigami.Units.gridUnit * 42 : Kirigami.Units.gridUnit * 11
 
-        RowLayout {
+        readonly property real gaugeSize: vertical
+            ? Math.max(40, Math.min(view.width * 0.55, view.height / 6.5))
+            : Math.max(48, Math.min(view.height * 0.62, view.width / 6.4))
+
+        GridLayout {
             anchors.centerIn: parent
-            spacing: Kirigami.Units.largeSpacing
+            columns: view.vertical ? 1 : 5
+            rowSpacing: Kirigami.Units.largeSpacing
+            columnSpacing: Kirigami.Units.largeSpacing
 
             MetricColumn {
                 value: root.cpuPercent

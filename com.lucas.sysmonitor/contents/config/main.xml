@@ -11,5 +11,8 @@
     <entry name="updateInterval" type="Int">
       <default>2000</default>
     </entry>
+    <entry name="layoutVertical" type="Bool">
+      <default>false</default>
+    </entry>
   </group>
 </kcfg>
