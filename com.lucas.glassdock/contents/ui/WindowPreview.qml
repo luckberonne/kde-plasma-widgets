@@ -1,7 +1,7 @@
 /*
  * Miniatura en vivo de una ventana.
- * En Wayland el contenido llega por PipeWire; si el stream no está listo
- * (o en X11 sin soporte), cae al icono de la aplicación.
+ * En Wayland el contenido llega por PipeWire; mientras el stream no entrega
+ * frames se muestra el icono de la aplicación.
  * SPDX-License-Identifier: MIT
  */
 import QtQuick
@@ -20,23 +20,25 @@ Item {
         uuid: String(preview.windowId)
     }
 
-    PipeWire.PipeWireSourceItem {
-        id: stream
-        anchors.centerIn: parent
-        nodeId: request.nodeId
-        visible: ready && nodeId > 0
-
-        // Encaja la ventana dentro del recuadro sin deformarla.
-        readonly property real ratio: streamSize.height > 0 ? streamSize.width / streamSize.height : 1.6
-        width: Math.min(parent.width, parent.height * ratio)
-        height: ratio > 0 ? width / ratio : parent.height
-    }
-
     Kirigami.Icon {
         anchors.centerIn: parent
-        visible: !stream.visible
+        visible: !stream.ready
         source: preview.fallbackIcon
         width: Math.min(parent.width, parent.height) * 0.6
         height: width
+    }
+
+
+    PipeWire.PipeWireSourceItem {
+        id: stream
+        anchors.fill: parent
+        nodeId: request.nodeId
+
+        // Ojo: NO condicionar `visible` a `ready`. PipeWireSourceItem pausa el
+        // stream mientras el item está oculto, así que `visible: ready` se queda
+        // trabado (nunca corre, nunca está listo). Se mantiene visible y se
+        // revela con opacity cuando llegan los primeros frames.
+        opacity: ready ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 150 } }
     }
 }
