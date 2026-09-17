@@ -12,6 +12,7 @@
         "EnabledByDefault": true,
         "Icon": "utilities-system-monitor",
         "Id": "com.lucas.sysmonitor",
+        "License": "MIT",
         "Name": "System Monitor (Scenic)",
         "Name[es]": "Monitor del Sistema",
         "Version": "1.0"
