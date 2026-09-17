@@ -158,6 +158,11 @@ PlasmoidItem {
                 required property var model
 
                 readonly property bool isLauncher: model.IsLauncher === true
+                readonly property var winIds: model.WinIdList !== undefined ? model.WinIdList : []
+                readonly property bool isGroup: model.IsGroupParent === true
+                readonly property string appName: model.AppName ? model.AppName : model.display
+                readonly property string title: model.display ? model.display : ""
+                readonly property var iconSource: model.decoration
                 readonly property bool isActive: model.IsActive === true
                 readonly property bool isMinimized: model.IsMinimized === true
                 readonly property bool needsAttention: model.IsDemandingAttention === true
@@ -227,11 +232,94 @@ PlasmoidItem {
         }
 
         PlasmaCore.ToolTipArea {
+            id: taskTip
             anchors.fill: parent
             active: Plasmoid.configuration.showLabels && root.focusedIndex >= 0
-            mainText: root.focusedIndex >= 0 && repeater.itemAt(root.focusedIndex)
-                      ? repeater.itemAt(root.focusedIndex).model.display : ""
-            interactive: false
+            interactive: true
+            location: Plasmoid.location
+
+            readonly property var task: root.focusedIndex >= 0 ? repeater.itemAt(root.focusedIndex) : null
+            readonly property var windows: task && !task.isLauncher ? task.winIds : []
+
+            mainItem: Item {
+                id: tipRoot
+
+                readonly property var task: taskTip.task
+                readonly property var windows: taskTip.windows
+                readonly property bool hasPreviews: Plasmoid.configuration.showPreviews && windows.length > 0
+                readonly property real previewW: Kirigami.Units.gridUnit * 12
+                readonly property real previewH: previewW * 0.6
+                readonly property int shown: Math.min(windows.length, 4)
+
+                implicitWidth: hasPreviews
+                    ? shown * previewW + (shown - 1) * Kirigami.Units.smallSpacing + Kirigami.Units.largeSpacing * 2
+                    : heading.implicitWidth + Kirigami.Units.largeSpacing * 2
+                implicitHeight: heading.implicitHeight + Kirigami.Units.largeSpacing * 2
+                                + (hasPreviews ? previewH + Kirigami.Units.smallSpacing : 0)
+
+                Column {
+                    id: tipColumn
+                    anchors.centerIn: parent
+                    spacing: Kirigami.Units.smallSpacing
+
+                    Kirigami.Heading {
+                        id: heading
+                        level: 5
+                        text: tipRoot.task ? tipRoot.task.appName : ""
+                        elide: Text.ElideRight
+                        horizontalAlignment: Text.AlignHCenter
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+
+                    Row {
+                        id: previewRow
+                        spacing: Kirigami.Units.smallSpacing
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        visible: tipRoot.hasPreviews
+
+                        Repeater {
+                            model: tipRoot.hasPreviews ? tipRoot.windows : []
+
+                            delegate: MouseArea {
+                                id: previewItem
+                                required property var modelData
+                                required property int index
+
+                                width: tipRoot.previewW
+                                height: tipRoot.previewH
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+
+                                onClicked: {
+                                    // Una ventana suelta se direcciona por su fila; dentro de un
+                                    // grupo hace falta el índice hijo.
+                                    const t = tipRoot.task
+                                    const idx = (t && t.isGroup)
+                                        ? tasksModel.makeModelIndex(root.focusedIndex, index)
+                                        : tasksModel.makeModelIndex(root.focusedIndex)
+                                    tasksModel.requestActivate(idx)
+                                    taskTip.hideToolTip()
+                                }
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: Kirigami.Units.cornerRadius
+                                    color: Kirigami.Theme.textColor
+                                    opacity: previewItem.containsMouse ? 0.14 : 0.06
+                                    Behavior on opacity { NumberAnimation { duration: 120 } }
+                                }
+
+                                WindowPreview {
+                                    anchors.fill: parent
+                                    anchors.margins: Kirigami.Units.smallSpacing
+                                    windowId: previewItem.modelData
+                                    fallbackIcon: tipRoot.task ? tipRoot.task.iconSource : null
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 

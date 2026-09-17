@@ -41,9 +41,10 @@ Gestor de tareas para el panel con magnificación de iconos al pasar el mouse, a
 - El tamaño del applet no cambia durante la magnificación: el espacio del zoom queda reservado de antemano, por lo que no empuja al resto de los widgets del panel.
 - El tamaño base del icono se limita solo para que el zoom nunca quede recortado contra el borde del panel.
 - Lanzadores fijos y ventanas abiertas en la misma tira, con punto indicador (más ancho en la ventana activa) y atenuación de las minimizadas.
+- Miniatura en vivo de las ventanas abiertas al pasar el mouse (vía PipeWire en Wayland), con clic para saltar a la ventana; si el stream no está disponible cae al icono de la aplicación.
 - Rebote al abrir una aplicación, clic para activar/minimizar, clic medio para una instancia nueva y menú contextual para fijar, desfijar o cerrar.
 - Funciona en paneles horizontales y verticales: el icono crece siempre hacia adentro desde el borde de la pantalla.
-- Configurable: tamaño del icono, factor de magnificación, alcance, separación de vecinos, etiquetas al hover, rebote y filtros por escritorio o pantalla.
+- Configurable: tamaño del icono, factor de magnificación, alcance, separación de vecinos, etiquetas y miniaturas al hover, rebote y filtros por escritorio o pantalla.
 
 ## Instalación
 

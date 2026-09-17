@@ -9,6 +9,7 @@ KCM.SimpleKCM {
     property alias cfg_influenceFactor: influence.value
     property alias cfg_spread: spread.value
     property alias cfg_showLabels: labels.checked
+    property alias cfg_showPreviews: previews.checked
     property alias cfg_showOnlyCurrentScreen: currentScreen.checked
     property alias cfg_showOnlyCurrentDesktop: currentDesktop.checked
     property alias cfg_bounceOnLaunch: bounce.checked
@@ -62,6 +63,10 @@ KCM.SimpleKCM {
             id: labels
             Kirigami.FormData.label: i18n("Mostrar:")
             text: i18n("Nombre de la aplicación al pasar el mouse")
+        }
+        QQC2.CheckBox {
+            id: previews
+            text: i18n("Miniatura en vivo de las ventanas abiertas")
         }
         QQC2.CheckBox {
             id: bounce
