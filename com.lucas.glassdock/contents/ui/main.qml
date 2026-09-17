@@ -35,6 +35,9 @@ PlasmoidItem {
     property real pointer: -1000
     property int focusedIndex: -1
     property int dropIndex: -1
+    // El tooltip recuerda su tarea aunque el puntero ya haya salido del dock:
+    // si no, se cerraría justo cuando vas a hacer clic en una miniatura.
+    property int tipIndex: -1
 
     preferredRepresentation: fullRepresentation
 
@@ -66,6 +69,8 @@ PlasmoidItem {
 
         launcherList: Plasmoid.configuration.launchers
         onLauncherListChanged: Plasmoid.configuration.launchers = launcherList
+
+        onCountChanged: if (root.tipIndex >= count) root.tipIndex = -1
     }
 
     // ---------- geometría del dock ----------
@@ -109,11 +114,18 @@ PlasmoidItem {
         function track(mouse) {
             root.pointer = root.vertical ? mouse.y : mouse.x
             root.focusedIndex = root.indexAt(root.pointer)
+            if (root.focusedIndex >= 0) root.tipIndex = root.focusedIndex
         }
 
         onPositionChanged: mouse => track(mouse)
-        onEntered: root.pointer = root.vertical ? mouseY : mouseX
+        onEntered: {
+            root.pointer = root.vertical ? mouseY : mouseX
+            root.focusedIndex = root.indexAt(root.pointer)
+            if (root.focusedIndex >= 0) root.tipIndex = root.focusedIndex
+        }
         onExited: {
+            // tipIndex NO se limpia acá: el tooltip sigue siendo interactivo
+            // mientras el puntero viaja hacia él.
             root.pointer = -1000
             root.focusedIndex = -1
         }
@@ -247,11 +259,11 @@ PlasmoidItem {
         PlasmaCore.ToolTipArea {
             id: taskTip
             anchors.fill: parent
-            active: Plasmoid.configuration.showLabels && root.focusedIndex >= 0
+            active: Plasmoid.configuration.showLabels && root.tipIndex >= 0
             interactive: true
             location: Plasmoid.location
 
-            readonly property var task: root.focusedIndex >= 0 ? repeater.itemAt(root.focusedIndex) : null
+            readonly property var task: root.tipIndex >= 0 ? repeater.itemAt(root.tipIndex) : null
             readonly property var windows: task && !task.isLauncher ? task.winIds : []
 
             mainItem: Item {
@@ -308,8 +320,8 @@ PlasmoidItem {
                                     // grupo hace falta el índice hijo.
                                     const t = tipRoot.task
                                     const idx = (t && t.isGroup)
-                                        ? tasksModel.makeModelIndex(root.focusedIndex, index)
-                                        : tasksModel.makeModelIndex(root.focusedIndex)
+                                        ? tasksModel.makeModelIndex(root.tipIndex, index)
+                                        : tasksModel.makeModelIndex(root.tipIndex)
                                     tasksModel.requestActivate(idx)
                                     taskTip.hideToolTip()
                                 }
