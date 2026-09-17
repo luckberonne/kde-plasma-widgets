@@ -2,6 +2,8 @@
 
 Dos widgets para Plasma 6 pensados para usarse juntos en el escritorio: un reloj panorámico y un monitor del sistema, con una estética consistente (fondo transparente, tipografía en blanco con sombra para mantener el contraste sobre cualquier fondo de escritorio).
 
+![Captura del reloj y el monitor del sistema en el escritorio](screenshots/desktop.png)
+
 ## Reloj Panorámico (`com.lucas.digitalclock`)
 
 Reloj digital con la hora en grande, el día de la semana en cursiva superpuesto y la fecha debajo, todo en español.
