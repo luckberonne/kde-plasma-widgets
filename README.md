@@ -32,6 +32,19 @@ Panel de métricas con anillos de progreso para CPU, RAM, GPU dedicada (NVIDIA),
 - `nvidia-smi` si tenés GPU NVIDIA (opcional, el widget funciona sin ella).
 - Un GPU AMD con driver `amdgpu` para la métrica de GPU integrada (opcional).
 
+## Dock de Vidrio (`com.lucas.glassdock`)
+
+Gestor de tareas para el panel con magnificación de iconos al pasar el mouse, al estilo del dock de macOS.
+
+- Los iconos se agrandan según la distancia al puntero, con una curva coseno suave, y los vecinos se separan para acompañar el movimiento.
+- El layout es función pura de la posición del puntero (se calcula sobre las celdas base, no sobre las ya escaladas), así que no hay realimentación ni temblor.
+- El tamaño del applet no cambia durante la magnificación: el espacio del zoom queda reservado de antemano, por lo que no empuja al resto de los widgets del panel.
+- El tamaño base del icono se limita solo para que el zoom nunca quede recortado contra el borde del panel.
+- Lanzadores fijos y ventanas abiertas en la misma tira, con punto indicador (más ancho en la ventana activa) y atenuación de las minimizadas.
+- Rebote al abrir una aplicación, clic para activar/minimizar, clic medio para una instancia nueva y menú contextual para fijar, desfijar o cerrar.
+- Funciona en paneles horizontales y verticales: el icono crece siempre hacia adentro desde el borde de la pantalla.
+- Configurable: tamaño del icono, factor de magnificación, alcance, separación de vecinos, etiquetas al hover, rebote y filtros por escritorio o pantalla.
+
 ## Instalación
 
 Copiá cada carpeta a tu directorio de plasmoids de usuario:

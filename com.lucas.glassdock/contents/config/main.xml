@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+                          http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+  <kcfgfile name=""/>
+  <group name="General">
+    <entry name="launchers" type="StringList">
+      <default>applications:org.kde.dolphin.desktop,applications:firefox.desktop,applications:org.kde.konsole.desktop</default>
+    </entry>
+    <entry name="iconSizeRatio" type="Double">
+      <default>0.62</default>
+    </entry>
+    <entry name="maxScale" type="Double">
+      <default>1.45</default>
+    </entry>
+    <entry name="influenceFactor" type="Double">
+      <default>1.8</default>
+    </entry>
+    <entry name="spread" type="Double">
+      <default>0.5</default>
+    </entry>
+    <entry name="showLabels" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="showOnlyCurrentScreen" type="Bool">
+      <default>false</default>
+    </entry>
+    <entry name="showOnlyCurrentDesktop" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="bounceOnLaunch" type="Bool">
+      <default>true</default>
+    </entry>
+  </group>
+</kcfg>

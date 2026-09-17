@@ -1,0 +1,21 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Lucas"
+            }
+        ],
+        "Category": "Windows and Tasks",
+        "Description": "Dock con magnificación de iconos al pasar el mouse, al estilo macOS",
+        "Description[es]": "Dock con magnificación de iconos al pasar el mouse, al estilo macOS",
+        "EnabledByDefault": true,
+        "Icon": "preferences-system-windows-effect-magiclamp",
+        "Id": "com.lucas.glassdock",
+        "License": "MIT",
+        "Name": "Glass Dock",
+        "Name[es]": "Dock de Vidrio",
+        "Version": "1.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}
