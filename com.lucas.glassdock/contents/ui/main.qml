@@ -279,6 +279,16 @@ PlasmoidItem {
 
         readonly property var task: root.tipTask
         readonly property var windows: root.tipWindows
+        // El tooltip es una ventana propia: al abrirse, el arrastre pasa a esa
+        // superficie y el dock recibe un "salió" aunque el usuario siga sobre el
+        // popup. Esto le avisa al dock que el arrastre sigue en algún lado válido.
+        readonly property bool dragInside: tipBackgroundDrop.containsDrag
+
+        DropArea {
+            id: tipBackgroundDrop
+            anchors.fill: parent
+            z: -1
+        }
         readonly property bool hasPreviews: Plasmoid.configuration.showPreviews && windows.length > 0
         readonly property real previewW: Kirigami.Units.gridUnit * 12
         readonly property real previewH: previewW * 0.6
@@ -374,6 +384,7 @@ PlasmoidItem {
                                 }
                             }
                             onDropped: drop => {
+                                exitGraceTimer.stop()
                                 root.dropIndex = -1
                                 root.pointer = -1000
                                 if (!drop.hasUrls) return
@@ -524,6 +535,7 @@ PlasmoidItem {
         }
 
         function updateTarget(x, y) {
+            exitGraceTimer.stop()
             const pos = root.vertical ? y : x
             const i = root.indexAt(pos)
             root.pointer = pos          // el dock también se magnifica al arrastrar
@@ -557,16 +569,31 @@ PlasmoidItem {
         }
         onExited: {
             springTimer.stop()
-            if (root.dropIndex >= 0) {
-                const t = repeater.itemAt(root.dropIndex)
-                if (t) t.hideTip()
+            exitGraceTimer.restart()
+        }
+
+        // Al salir del dock puede ser que el arrastre haya entrado al tooltip (otra
+        // ventana), no que el usuario se haya ido. Se espera un instante antes de
+        // cerrar, y se cancela si para entonces el arrastre reapareció en el dock o
+        // sigue dentro del propio tooltip.
+        Timer {
+            id: exitGraceTimer
+            interval: 200
+            onTriggered: {
+                if (dropArea.containsDrag) return
+                if (root.tipIndex >= 0 && root.tipContent.dragInside) return
+                if (root.dropIndex >= 0) {
+                    const t = repeater.itemAt(root.dropIndex)
+                    if (t) t.hideTip()
+                }
+                root.dropIndex = -1
+                root.pointer = -1000
             }
-            root.dropIndex = -1
-            root.pointer = -1000
         }
 
         onDropped: drop => {
             springTimer.stop()
+            exitGraceTimer.stop()
             const target = root.dropIndex
             root.dropIndex = -1
             root.pointer = -1000
