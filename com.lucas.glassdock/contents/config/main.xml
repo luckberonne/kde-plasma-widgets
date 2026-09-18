@@ -35,6 +35,9 @@
     <entry name="showBadges" type="Bool">
       <default>true</default>
     </entry>
+    <entry name="cycleIconPreview" type="Bool">
+      <default>true</default>
+    </entry>
     <entry name="showAudio" type="Bool">
       <default>true</default>
     </entry>

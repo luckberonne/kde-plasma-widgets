@@ -15,6 +15,7 @@ KCM.SimpleKCM {
     property alias cfg_bounceOnLaunch: bounce.checked
     property alias cfg_showBadges: badges.checked
     property alias cfg_showAudio: audio.checked
+    property alias cfg_cycleIconPreview: cyclePreview.checked
     property alias cfg_hidePanelBackground: hideBackground.checked
 
     Kirigami.FormLayout {
@@ -74,6 +75,10 @@ KCM.SimpleKCM {
         QQC2.CheckBox {
             id: badges
             text: i18n("Notificaciones sin leer y progreso de descargas/copias")
+        }
+        QQC2.CheckBox {
+            id: cyclePreview
+            text: i18n("En apps con varias ventanas, mostrarlas por turnos en el icono al pasar el mouse")
         }
         QQC2.CheckBox {
             id: audio

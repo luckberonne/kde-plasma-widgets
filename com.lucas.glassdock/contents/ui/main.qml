@@ -379,11 +379,12 @@ PlasmoidItem {
             return
         }
 
-        // En un grupo se actúa sobre la ventana usada por última vez: activar
-        // el grupo en sí no trae ninguna ventana al frente.
+        // En un grupo se actúa sobre la ventana que el icono está mostrando en ese
+        // momento (si está recorriéndolas) o, si no, la usada por última vez:
+        // activar el grupo en sí no trae ninguna ventana al frente.
         let target = idx
         if (item.isGroup) {
-            const child = root.mostRecentChild(i)
+            const child = item.previewIndex >= 0 ? item.previewIndex : root.mostRecentChild(i)
             if (child >= 0) target = tasksModel.makeModelIndex(i, child)
         }
 
@@ -393,6 +394,19 @@ PlasmoidItem {
         } else {
             tasksModel.requestActivate(target)
         }
+    }
+
+    // Trae al frente la ventana más reciente de la tarea i sin minimizarla nunca
+    // (a diferencia de activateTask, que alterna). Restaura si estaba minimizada.
+    function raiseTask(i) {
+        const item = repeater.itemAt(i)
+        if (!item || item.isLauncher) return
+        let target = tasksModel.makeModelIndex(i)
+        if (item.isGroup) {
+            const child = root.mostRecentChild(i)
+            if (child >= 0) target = tasksModel.makeModelIndex(i, child)
+        }
+        tasksModel.requestActivate(target)
     }
 
     // Trae al frente la ventana siguiente (dir = 1) o anterior (dir = -1) de la
@@ -466,11 +480,25 @@ PlasmoidItem {
 
         Timer {
             id: springTimer
+            // Primera vez a los 750 ms: trae la última ventana usada (y la restaura
+            // si estaba minimizada). Si el arrastre sigue sobre el mismo icono, pasa
+            // a la siguiente ventana de la app cada segundo, para poder soltar en
+            // cualquiera. Activar el grupo en sí no traería ninguna ventana.
             interval: 750
+            repeat: true
+            property int step: 0
             onTriggered: {
+                interval = 1000
                 if (root.dropIndex < 0) return
                 const t = repeater.itemAt(root.dropIndex)
-                if (t && !t.isLauncher) tasksModel.requestActivate(tasksModel.makeModelIndex(root.dropIndex))
+                if (!t || t.isLauncher) return
+                if (step === 0 || !t.isGroup) {
+                    root.raiseTask(root.dropIndex)
+                    if (!t.isGroup) stop()
+                } else {
+                    root.cycleWindows(root.dropIndex, 1)
+                }
+                step++
             }
         }
 
@@ -480,6 +508,8 @@ PlasmoidItem {
             root.pointer = pos          // el dock también se magnifica al arrastrar
             if (i !== root.dropIndex) {
                 root.dropIndex = i
+                springTimer.step = 0
+                springTimer.interval = 750
                 springTimer.restart()
             }
         }
@@ -648,6 +678,50 @@ PlasmoidItem {
                     readonly property real magnify: root.scaleAt(index)
                     property real shift: root.offsetAt(index)
 
+                    // ---- auto-switch en el icono ----
+                    // Con varias ventanas, al quedarte parado sobre el icono empieza a
+                    // mostrar una miniatura en vivo de cada una por turnos, para ver de
+                    // un vistazo qué hay abierto sin tener que abrir el tooltip.
+                    property int previewIndex: -1
+                    readonly property bool canCycle: Plasmoid.configuration.cycleIconPreview
+                        && isGroup && winIds.length > 1
+                    readonly property bool shouldDwell: canCycle && root.focusedIndex === index
+                        && root.reorderIndex < 0 && !dropArea.containsDrag
+
+                    // No se liga `running` del Timer a esta expresión: un Timer sin
+                    // repetición pone running=false por su cuenta al disparar, lo que
+                    // rompería el binding y, en el mismo instante, dispararía el reset
+                    // de más abajo -- deshaciendo el índice recién puesto. Se arranca y
+                    // se para a mano en cambios de shouldDwell.
+                    onShouldDwellChanged: {
+                        if (shouldDwell) {
+                            dwellTimer.restart()
+                        } else {
+                            dwellTimer.stop()
+                            cycleTimer.stop()
+                            previewIndex = -1
+                        }
+                    }
+                    onWinIdsChanged: if (previewIndex >= winIds.length) previewIndex = -1
+
+                    Timer {
+                        id: dwellTimer
+                        interval: 400
+                        onTriggered: {
+                            dockItem.previewIndex = root.mostRecentChild(dockItem.index)
+                            cycleTimer.restart()
+                        }
+                    }
+                    Timer {
+                        id: cycleTimer
+                        interval: 1600
+                        repeat: true
+                        onTriggered: {
+                            if (dockItem.winIds.length === 0) { dockItem.previewIndex = -1; return }
+                            dockItem.previewIndex = (dockItem.previewIndex + 1) % dockItem.winIds.length
+                        }
+                    }
+
                     width: root.vertical ? root.width : root.cell
                     height: root.vertical ? root.cell : root.height
                     z: Math.round(magnify * 100)
@@ -744,7 +818,7 @@ PlasmoidItem {
                         // Sin esto Kirigami redondea hacia abajo al tamaño estándar más
                         // cercano (45 px -> 32 px) y el zoom avanza a saltos.
                         roundToIconSize: false
-                        opacity: dockItem.isMinimized ? 0.55 : 1.0
+                        opacity: dockItem.previewIndex >= 0 ? 0 : (dockItem.isMinimized ? 0.55 : 1.0)
 
                         width: root.baseIcon * dockItem.magnify
                         height: width
@@ -762,6 +836,19 @@ PlasmoidItem {
                             NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
                         }
                         Behavior on opacity { NumberAnimation { duration: 150 } }
+                    }
+
+                    Loader {
+                        id: previewLoader
+                        active: dockItem.previewIndex >= 0
+                        anchors.fill: icon
+                        opacity: active ? 1 : 0
+                        Behavior on opacity { NumberAnimation { duration: 150 } }
+                        sourceComponent: WindowPreview {
+                            windowId: dockItem.previewIndex >= 0 && dockItem.winIds[dockItem.previewIndex]
+                                      ? dockItem.winIds[dockItem.previewIndex] : ""
+                            fallbackIcon: dockItem.iconSource
+                        }
                     }
 
                     SequentialAnimation {
