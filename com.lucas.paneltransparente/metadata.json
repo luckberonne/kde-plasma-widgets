@@ -1,0 +1,21 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Lucas"
+            }
+        ],
+        "Category": "Windows and Tasks",
+        "Description": "Botón que alterna la transparencia total del panel",
+        "Description[es]": "Botón que alterna la transparencia total del panel",
+        "EnabledByDefault": true,
+        "Icon": "view-hidden",
+        "Id": "com.lucas.paneltransparente",
+        "License": "MIT",
+        "Name": "Panel Transparente",
+        "Name[es]": "Panel Transparente",
+        "Version": "1.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

@@ -57,6 +57,14 @@ Gestor de tareas para el panel con magnificación de iconos al pasar el mouse, a
 - Opción para ocultar el fondo del panel que lo contiene (panel completamente transparente, sin desenfoque), usando el mecanismo propio de Plasma (`backgroundHints: NoBackground` en el contenedor).
 - Configurable: tamaño del icono, factor de magnificación, alcance, separación de vecinos, etiquetas y miniaturas al hover, rebote y filtros por escritorio o pantalla.
 
+## Panel Transparente (`com.lucas.paneltransparente`)
+
+Botón mínimo para el panel que alterna su transparencia total.
+
+- Al activarlo, el contenedor del panel pasa a `backgroundHints: NoBackground` (mismo mecanismo que la opción equivalente de Dock de Vidrio), así que el panel queda sin fondo ni desenfoque.
+- El icono cambia entre ojo abierto/tachado según el estado, y el estado se guarda en la configuración del widget.
+- Sirve para cualquier panel, no requiere reemplazar el gestor de tareas por Dock de Vidrio.
+
 ## Instalación
 
 Copiá cada carpeta a tu directorio de plasmoids de usuario:
@@ -64,6 +72,8 @@ Copiá cada carpeta a tu directorio de plasmoids de usuario:
 ```bash
 cp -r com.lucas.digitalclock ~/.local/share/plasma/plasmoids/
 cp -r com.lucas.sysmonitor ~/.local/share/plasma/plasmoids/
+cp -r com.lucas.glassdock ~/.local/share/plasma/plasmoids/
+cp -r com.lucas.paneltransparente ~/.local/share/plasma/plasmoids/
 ```
 
 Reiniciá Plasma para que aparezcan en el selector de widgets:
