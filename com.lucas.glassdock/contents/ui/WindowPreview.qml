@@ -28,11 +28,21 @@ Item {
         height: width
     }
 
-
     PipeWire.PipeWireSourceItem {
         id: stream
-        anchors.fill: parent
+        anchors.centerIn: parent
         nodeId: request.nodeId
+
+        // PipeWireSourceItem no tiene fillMode: con anchors.fill llenaba todo el
+        // recuadro sin respetar el aspecto real de la ventana, así que una Konsole
+        // dividida en paneles (mucho más ancha que el recuadro) quedaba recortada
+        // en los costados. Se calcula el tamaño a mano a partir de streamSize para
+        // que quepa entera (con bandas, si hace falta) en vez de cortarse.
+        readonly property real ratio: streamSize.height > 0
+            ? streamSize.width / streamSize.height
+            : (parent.height > 0 ? parent.width / parent.height : 1)
+        width: Math.min(parent.width, parent.height * ratio)
+        height: ratio > 0 ? width / ratio : parent.height
 
         // Ojo: NO condicionar `visible` a `ready`. PipeWireSourceItem pausa el
         // stream mientras el item está oculto, así que `visible: ready` se queda
