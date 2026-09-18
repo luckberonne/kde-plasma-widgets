@@ -260,6 +260,61 @@ PlasmoidItem {
         }
     }
 
+
+    // Clic izquierdo (y atajo Meta+número): lanza, trae al frente o minimiza.
+    function activateTask(i) {
+        const item = repeater.itemAt(i)
+        if (!item) return
+        const idx = tasksModel.makeModelIndex(i)
+        if (item.isLauncher) {
+            tasksModel.requestActivate(idx)
+            item.bounce()
+            return
+        }
+
+        // En un grupo se actúa sobre la ventana usada por última vez: activar
+        // el grupo en sí no trae ninguna ventana al frente.
+        let target = idx
+        if (item.isGroup) {
+            const child = root.mostRecentChild(i)
+            if (child >= 0) target = tasksModel.makeModelIndex(i, child)
+        }
+
+        // Si esa ventana ya está al frente se minimiza; si no, se trae.
+        if (item.isActive) {
+            tasksModel.requestToggleMinimized(target)
+        } else {
+            tasksModel.requestActivate(target)
+        }
+    }
+
+    // Trae al frente la ventana siguiente (dir = 1) o anterior (dir = -1) de la
+    // tarea i. Sin ninguna activa, empieza por la usada más recientemente.
+    function cycleWindows(i, dir) {
+        const item = repeater.itemAt(i)
+        if (!item || item.isLauncher) return
+        if (!item.isGroup) {
+            tasksModel.requestActivate(tasksModel.makeModelIndex(i))
+            return
+        }
+        groupProbe.rootIndex = tasksModel.makeModelIndex(i)
+        const n = groupProbe.items.count
+        if (n === 0) return
+        let current = -1
+        for (let j = 0; j < n; j++) {
+            if (groupProbe.items.get(j).model.IsActive === true) { current = j; break }
+        }
+        const next = current < 0 ? root.mostRecentChild(i) : (current + dir + n) % n
+        tasksModel.requestActivate(tasksModel.makeModelIndex(i, next))
+    }
+
+    // Llamada por plasmashell para los atajos Meta+1…9 ("Activar la entrada N del
+    // gestor de tareas"). Requiere declarar org.kde.plasma.multitasking en metadata.
+    function activateTaskAtIndex(index) {
+        if (typeof index !== "number") return
+        activateTask(index)
+    }
+
     // ---------- geometría del dock ----------
     // Centro de la celda i, sin magnificar. Todo se deriva de acá, así que el
     // layout es función pura del puntero: no hay realimentación ni temblor.
@@ -425,7 +480,6 @@ PlasmoidItem {
                 track(mouse)
                 const i = root.focusedIndex
                 if (i < 0) return
-                const idx = tasksModel.makeModelIndex(i)
 
                 // Rueda del medio: cierra todas las ventanas de la app.
                 if (mouse.button === Qt.MiddleButton) {
@@ -439,27 +493,23 @@ PlasmoidItem {
                     return
                 }
 
-                const item = repeater.itemAt(i)
-                if (item.isLauncher) {
-                    tasksModel.requestActivate(idx)
-                    item.bounce()
-                    return
-                }
+                root.activateTask(i)
+            }
 
-                // En un grupo se actúa sobre la ventana usada por última vez: activar
-                // el grupo en sí no trae ninguna ventana al frente.
-                let target = idx
-                if (item.isGroup) {
-                    const child = root.mostRecentChild(i)
-                    if (child >= 0) target = tasksModel.makeModelIndex(i, child)
-                }
-
-                // Si esa ventana ya está al frente, el clic la minimiza (como en el
-                // resto de las ventanas); si no, la trae.
-                if (item.isActive) {
-                    tasksModel.requestToggleMinimized(target)
-                } else {
-                    tasksModel.requestActivate(target)
+            // Rueda del mouse sobre un icono: recorre las ventanas de esa app.
+            WheelHandler {
+                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                property real accumulated: 0
+                onWheel: event => {
+                    const i = root.focusedIndex
+                    if (i < 0) return
+                    // 120 = un "paso" de rueda; acumular hace que los touchpads,
+                    // que mandan deltas chicos, no salten ventana con cada evento.
+                    accumulated += event.angleDelta.y !== 0 ? event.angleDelta.y : event.angleDelta.x
+                    while (Math.abs(accumulated) >= 120) {
+                        root.cycleWindows(i, accumulated > 0 ? -1 : 1)
+                        accumulated -= accumulated > 0 ? 120 : -120
+                    }
                 }
             }
 

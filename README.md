@@ -44,6 +44,7 @@ Gestor de tareas para el panel con magnificación de iconos al pasar el mouse, a
 - Miniatura en vivo de las ventanas abiertas al pasar el mouse (vía PipeWire en Wayland), con clic para saltar a la ventana; si el stream no está disponible cae al icono de la aplicación.
 - Arrastrá archivos sobre un icono para abrirlos con esa aplicación; si te quedás encima sin soltar, la ventana se trae al frente (spring-loading) para soltar directamente adentro.
 - Rebote continuo mientras una aplicación arranca (hasta que aparece su ventana), clic para activar/minimizar, clic con la rueda del medio para cerrar todas las ventanas de la app (o, sobre una miniatura, solo esa ventana) y menú contextual para fijar, desfijar o cerrar.
+- Rueda del mouse sobre un icono para recorrer las ventanas de esa app, y atajos Meta+1…9 para activar la app según su posición (el widget declara `org.kde.plasma.multitasking`, que es lo que busca plasmashell para esos atajos).
 - Reordenar los iconos arrastrándolos; el orden de las apps fijadas se guarda al soltar.
 - Publica la posición de cada icono a KWin, así la animación de minimizar (lámpara mágica, squash) va hacia el icono correcto.
 - Funciona en paneles horizontales y verticales: el icono crece siempre hacia adentro desde el borde de la pantalla.
