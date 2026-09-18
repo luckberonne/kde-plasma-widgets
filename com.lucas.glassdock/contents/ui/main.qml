@@ -137,6 +137,22 @@ PlasmoidItem {
         return best
     }
 
+    // Cierra todas las ventanas de la tarea i. En un grupo se cierra cada hijo
+    // explícitamente; los índices se juntan antes porque el modelo cambia a
+    // medida que las ventanas se van cerrando.
+    function closeAll(i) {
+        const item = repeater.itemAt(i)
+        if (!item || item.isLauncher) return
+        if (!item.isGroup) {
+            tasksModel.requestClose(tasksModel.makeModelIndex(i))
+            return
+        }
+        groupProbe.rootIndex = tasksModel.makeModelIndex(i)
+        const children = []
+        for (let j = 0; j < groupProbe.items.count; j++) children.push(tasksModel.makeModelIndex(i, j))
+        children.forEach(idx => tasksModel.requestClose(idx))
+    }
+
     // ---------- geometría del dock ----------
     // Centro de la celda i, sin magnificar. Todo se deriva de acá, así que el
     // layout es función pura del puntero: no hay realimentación ni temblor.
@@ -259,9 +275,9 @@ PlasmoidItem {
                 if (i < 0) return
                 const idx = tasksModel.makeModelIndex(i)
 
+                // Rueda del medio: cierra todas las ventanas de la app.
                 if (mouse.button === Qt.MiddleButton) {
-                    tasksModel.requestNewInstance(idx)
-                    repeater.itemAt(i).bounce()
+                    root.closeAll(i)
                     return
                 }
                 if (mouse.button === Qt.RightButton) {
@@ -330,6 +346,49 @@ PlasmoidItem {
 
                     function bounce() {
                         if (Plasmoid.configuration.bounceOnLaunch) bounceAnim.restart()
+                    }
+
+                    // ---- geometría para KWin ----
+                    // KWin usa esta geometría como destino de la animación de minimizar
+                    // (lámpara mágica, squash): sin ella la ventana no va hacia su icono.
+                    // Se publica la celda en su posición de reposo, sin el desplazamiento
+                    // del zoom, para que el destino no dependa de dónde esté el mouse.
+                    Item {
+                        id: geometryAnchor
+                        x: root.vertical ? 0 : -dockItem.shift
+                        y: root.vertical ? -dockItem.shift : 0
+                        width: dockItem.width
+                        height: dockItem.height
+                    }
+
+                    // Con demora: la posición cambia muchas veces seguidas (reacomodo del
+                    // panel, cambios en la lista) y alcanza con avisar el valor final.
+                    Timer {
+                        id: publishTimer
+                        interval: 250
+                        onTriggered: dockItem.publishGeometry()
+                    }
+
+                    function publishGeometry() {
+                        if (dockItem.isLauncher || !dockItem.Window.window) return
+                        const p = geometryAnchor.mapToGlobal(0, 0)
+                        tasksModel.requestPublishDelegateGeometry(
+                            tasksModel.makeModelIndex(dockItem.index),
+                            Qt.rect(Math.round(p.x), Math.round(p.y),
+                                    Math.round(geometryAnchor.width), Math.round(geometryAnchor.height)),
+                            geometryAnchor)
+                    }
+
+                    Component.onCompleted: publishTimer.restart()
+                    onIndexChanged: publishTimer.restart()
+                    onIsLauncherChanged: publishTimer.restart()
+                    onIsGroupChanged: publishTimer.restart()
+                    Connections {
+                        target: root
+                        function onXChanged() { publishTimer.restart() }
+                        function onYChanged() { publishTimer.restart() }
+                        function onWidthChanged() { publishTimer.restart() }
+                        function onHeightChanged() { publishTimer.restart() }
                     }
 
                     Kirigami.Icon {
@@ -464,14 +523,22 @@ PlasmoidItem {
                                     height: tipRoot.previewH
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
+                                    acceptedButtons: Qt.LeftButton | Qt.MiddleButton
 
-                                    onClicked: {
+                                    onClicked: mouse => {
                                         // Una ventana suelta se direcciona por su fila; dentro de un
                                         // grupo hace falta el índice hijo.
                                         const t = tipRoot.task
                                         const idx = (t && t.isGroup)
                                             ? tasksModel.makeModelIndex(root.tipIndex, index)
                                             : tasksModel.makeModelIndex(root.tipIndex)
+
+                                        // Rueda del medio sobre una miniatura: cierra sólo esa ventana
+                                        // y deja el tooltip abierto con las demás.
+                                        if (mouse.button === Qt.MiddleButton) {
+                                            tasksModel.requestClose(idx)
+                                            return
+                                        }
                                         tasksModel.requestActivate(idx)
                                         taskTip.hideToolTip()
                                     }
