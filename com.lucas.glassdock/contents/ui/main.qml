@@ -528,12 +528,17 @@ PlasmoidItem {
             const i = root.indexAt(pos)
             root.pointer = pos          // el dock también se magnifica al arrastrar
             if (i !== root.dropIndex) {
+                if (root.dropIndex >= 0) {
+                    const prev = repeater.itemAt(root.dropIndex)
+                    if (prev) prev.hideTip()
+                }
                 root.dropIndex = i
                 springTimer.stop()
                 const t = i >= 0 ? repeater.itemAt(i) : null
                 if (t && !t.isLauncher) {
                     if (t.isGroup && t.winIds.length > 1) {
                         root.tipIndex = i
+                        t.showTip()
                     } else {
                         springTimer.restart()
                     }
@@ -552,6 +557,10 @@ PlasmoidItem {
         }
         onExited: {
             springTimer.stop()
+            if (root.dropIndex >= 0) {
+                const t = repeater.itemAt(root.dropIndex)
+                if (t) t.hideTip()
+            }
             root.dropIndex = -1
             root.pointer = -1000
         }
@@ -561,10 +570,20 @@ PlasmoidItem {
             const target = root.dropIndex
             root.dropIndex = -1
             root.pointer = -1000
+            const t = target >= 0 ? repeater.itemAt(target) : null
+            if (t) t.hideTip()
             if (target < 0 || !drop.hasUrls) return
 
-            const t = repeater.itemAt(target)
-            tasksModel.requestOpenUrls(tasksModel.makeModelIndex(target), drop.urls)
+            // Con varias ventanas el tooltip ya estaba abierto para elegir una: soltar
+            // sobre el icono mismo (no sobre una miniatura) abre en la más reciente.
+            if (t && t.isGroup && t.winIds.length > 1) {
+                const child = root.mostRecentChild(target)
+                tasksModel.requestOpenUrls(
+                    child >= 0 ? tasksModel.makeModelIndex(target, child) : tasksModel.makeModelIndex(target),
+                    drop.urls)
+            } else {
+                tasksModel.requestOpenUrls(tasksModel.makeModelIndex(target), drop.urls)
+            }
             if (t) t.bounce()
             drop.accept(Qt.CopyAction)
         }
@@ -793,6 +812,7 @@ PlasmoidItem {
                                 && dockItem.appName !== "") || dockItem.dragShowsTip
                         onContainsMouseChanged: if (containsMouse) root.tipIndex = dockItem.index
                     }
+                    function showTip() { itemTip.showToolTip() }
                     function hideTip() { itemTip.hideToolTip() }
 
                     // ---- geometría para KWin ----
