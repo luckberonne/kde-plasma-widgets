@@ -5,6 +5,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQml.Models
 import QtQuick.Layouts
 import QtQuick.Controls as QQC2
 import org.kde.plasma.plasmoid
@@ -87,6 +88,33 @@ PlasmoidItem {
         onLauncherListChanged: Plasmoid.configuration.launchers = launcherList
 
         onCountChanged: if (root.tipIndex >= count) root.tipIndex = -1
+    }
+
+
+    // Lee las ventanas de un grupo sin crear delegados: DelegateModel expone los
+    // roles de cada hijo vía items.get(j).model.
+    DelegateModel {
+        id: groupProbe
+        model: tasksModel
+        delegate: Item {}
+    }
+
+    // Índice hijo de la ventana usada más recientemente dentro del grupo i.
+    // Se usa el orden de apilado de KWin (activar una ventana la sube al tope)
+    // y no LastActivated: ése sólo se registra mientras plasmashell está vivo,
+    // así que tras cada reinicio de sesión o de Plasma viene vacío.
+    function mostRecentChild(i) {
+        groupProbe.rootIndex = tasksModel.makeModelIndex(i)
+        let best = -1
+        let top = -1
+        for (let j = 0; j < groupProbe.items.count; j++) {
+            const order = groupProbe.items.get(j).model.StackingOrder
+            if (order !== undefined && order > top) {
+                top = order
+                best = j
+            }
+        }
+        return best
     }
 
     // ---------- geometría del dock ----------
@@ -226,10 +254,23 @@ PlasmoidItem {
                 if (item.isLauncher) {
                     tasksModel.requestActivate(idx)
                     item.bounce()
-                } else if (item.isActive) {
-                    tasksModel.requestToggleMinimized(idx)
+                    return
+                }
+
+                // En un grupo se actúa sobre la ventana usada por última vez: activar
+                // el grupo en sí no trae ninguna ventana al frente.
+                let target = idx
+                if (item.isGroup) {
+                    const child = root.mostRecentChild(i)
+                    if (child >= 0) target = tasksModel.makeModelIndex(i, child)
+                }
+
+                // Si esa ventana ya está al frente, el clic la minimiza (como en el
+                // resto de las ventanas); si no, la trae.
+                if (item.isActive) {
+                    tasksModel.requestToggleMinimized(target)
                 } else {
-                    tasksModel.requestActivate(idx)
+                    tasksModel.requestActivate(target)
                 }
             }
 
