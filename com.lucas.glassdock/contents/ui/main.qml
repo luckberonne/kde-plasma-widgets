@@ -282,13 +282,17 @@ PlasmoidItem {
         readonly property bool hasPreviews: Plasmoid.configuration.showPreviews && windows.length > 0
         readonly property real previewW: Kirigami.Units.gridUnit * 12
         readonly property real previewH: previewW * 0.6
-        readonly property int shown: Math.min(windows.length, 4)
+        // Hasta 12 miniaturas en una grilla de hasta 4 columnas.
+        readonly property int shown: Math.min(windows.length, 12)
+        readonly property int columns: Math.max(1, Math.min(shown, 4))
+        readonly property int rows: Math.ceil(shown / columns)
+        readonly property real gap: Kirigami.Units.smallSpacing
 
         implicitWidth: hasPreviews
-            ? shown * previewW + (shown - 1) * Kirigami.Units.smallSpacing + Kirigami.Units.largeSpacing * 2
+            ? columns * previewW + (columns - 1) * gap + Kirigami.Units.largeSpacing * 2
             : heading.implicitWidth + Kirigami.Units.largeSpacing * 2
         implicitHeight: heading.implicitHeight + Kirigami.Units.largeSpacing * 2
-                        + (hasPreviews ? previewH + Kirigami.Units.smallSpacing : 0)
+                        + (hasPreviews ? rows * previewH + (rows - 1) * gap + gap : 0)
 
         Column {
             id: tipColumn
@@ -304,14 +308,15 @@ PlasmoidItem {
                 anchors.horizontalCenter: parent.horizontalCenter
             }
 
-            Row {
-                id: previewRow
-                spacing: Kirigami.Units.smallSpacing
+            Grid {
+                id: previewGrid
+                columns: tipRoot.columns
+                spacing: tipRoot.gap
                 anchors.horizontalCenter: parent.horizontalCenter
                 visible: tipRoot.hasPreviews
 
                 Repeater {
-                    model: tipRoot.hasPreviews ? tipRoot.windows : []
+                    model: tipRoot.hasPreviews ? tipRoot.windows.slice(0, tipRoot.shown) : []
 
                     delegate: MouseArea {
                         id: previewItem
