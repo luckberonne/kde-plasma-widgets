@@ -288,6 +288,7 @@ PlasmoidItem {
             anchors.fill: parent
             z: -1
             onEntered: tipRoot.pingDragInside()
+            onExited: root.dragMightHaveLeft()
             onPositionChanged: tipRoot.pingDragInside()
         }
         readonly property bool hasPreviews: Plasmoid.configuration.showPreviews && windows.length > 0
@@ -391,7 +392,10 @@ PlasmoidItem {
                                 raiseWindowTimer.restart()
                             }
                             onPositionChanged: drag => tipRoot.pingDragInside()
-                            onExited: raiseWindowTimer.stop()
+                            onExited: {
+                                raiseWindowTimer.stop()
+                                root.dragMightHaveLeft()
+                            }
                             onDropped: drop => {
                                 raiseWindowTimer.stop()
                                 exitGraceTimer.stop()
@@ -509,6 +513,28 @@ PlasmoidItem {
         id: dragPreviewDialog
         location: Plasmoid.location
         visible: false
+        // Respaldo: si el popup se cierra por cualquier motivo que no sea nuestro
+        // propio closeDragPreview() -- por ejemplo, al soltar directamente sobre la
+        // ventana real que se trajo al frente, drop que nunca pasa por ninguno de
+        // nuestros DropArea -- igual hay que soltar el estado del arrastre, si no
+        // el resaltado del icono queda pegado para siempre.
+        onVisibleChanged: if (!visible) root.dragPreviewClosed()
+    }
+
+    function dragPreviewClosed() {
+        exitGraceTimer.stop()
+        springTimer.stop()
+        root.dropIndex = -1
+        root.pointer = -1000
+    }
+
+    // Cualquier "salió" -- del dock, del fondo del popup o de una miniatura en
+    // particular -- puede ser la última señal antes de que el arrastre se haya
+    // ido de verdad (por ejemplo, hacia la ventana real que se acaba de traer al
+    // frente). Se agenda siempre el mismo margen de gracia; si el arrastre sigue
+    // en algún lado válido, el propio timer lo cancela al chequear.
+    function dragMightHaveLeft() {
+        exitGraceTimer.restart()
     }
 
     function openDragPreview(i) {
@@ -610,7 +636,7 @@ PlasmoidItem {
         }
         onExited: {
             springTimer.stop()
-            exitGraceTimer.restart()
+            root.dragMightHaveLeft()
         }
 
         Timer {
