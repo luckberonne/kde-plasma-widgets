@@ -45,6 +45,7 @@ Gestor de tareas para el panel con magnificación de iconos al pasar el mouse, a
 - Arrastrá archivos sobre un icono para abrirlos con esa aplicación; si te quedás encima sin soltar, la ventana se trae al frente (spring-loading) para soltar directamente adentro.
 - Rebote al abrir una aplicación, clic para activar/minimizar, clic medio para una instancia nueva y menú contextual para fijar, desfijar o cerrar.
 - Funciona en paneles horizontales y verticales: el icono crece siempre hacia adentro desde el borde de la pantalla.
+- Opción para ocultar el fondo del panel que lo contiene (panel completamente transparente, sin desenfoque), usando el mecanismo propio de Plasma (`backgroundHints: NoBackground` en el contenedor).
 - Configurable: tamaño del icono, factor de magnificación, alcance, separación de vecinos, etiquetas y miniaturas al hover, rebote y filtros por escritorio o pantalla.
 
 ## Instalación

@@ -52,6 +52,17 @@ PlasmoidItem {
 
     preferredRepresentation: fullRepresentation
 
+    // Panel sin fondo: se usa el mecanismo propio de Plasma. Si el contenedor del
+    // panel declara NoBackground, la vista del panel no dibuja el fondo ni pide
+    // desenfoque. Al desactivar la opción se restaura el valor anterior.
+    Binding {
+        target: Plasmoid.containment
+        property: "backgroundHints"
+        value: PlasmaCore.Types.NoBackground
+        when: Plasmoid.configuration.hidePanelBackground && Plasmoid.containment !== null
+        restoreMode: Binding.RestoreBindingOrValue
+    }
+
 
     // Sólo se fija el eje largo. El transversal lo decide el panel: si se ataba
     // a la propia altura/ancho del applet, quedaba congelado en su valor inicial

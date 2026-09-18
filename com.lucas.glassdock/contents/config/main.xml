@@ -32,6 +32,9 @@
     <entry name="showOnlyCurrentDesktop" type="Bool">
       <default>true</default>
     </entry>
+    <entry name="hidePanelBackground" type="Bool">
+      <default>false</default>
+    </entry>
     <entry name="bounceOnLaunch" type="Bool">
       <default>true</default>
     </entry>

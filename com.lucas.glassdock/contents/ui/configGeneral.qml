@@ -13,6 +13,7 @@ KCM.SimpleKCM {
     property alias cfg_showOnlyCurrentScreen: currentScreen.checked
     property alias cfg_showOnlyCurrentDesktop: currentDesktop.checked
     property alias cfg_bounceOnLaunch: bounce.checked
+    property alias cfg_hidePanelBackground: hideBackground.checked
 
     Kirigami.FormLayout {
         anchors.fill: parent
@@ -79,6 +80,14 @@ KCM.SimpleKCM {
         QQC2.CheckBox {
             id: currentScreen
             text: i18n("Solo ventanas de esta pantalla")
+        }
+
+        Item { Kirigami.FormData.isSection: true }
+
+        QQC2.CheckBox {
+            id: hideBackground
+            Kirigami.FormData.label: i18n("Panel:")
+            text: i18n("Ocultar el fondo del panel (completamente transparente)")
         }
     }
 }
