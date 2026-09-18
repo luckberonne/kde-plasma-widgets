@@ -13,6 +13,7 @@ import org.kde.plasma.core as PlasmaCore
 import org.kde.kirigami as Kirigami
 import org.kde.taskmanager as TaskManager
 import org.kde.notificationmanager as NotificationManager
+import org.kde.plasma.private.volume as PlasmaPa
 
 PlasmoidItem {
     id: root
@@ -213,6 +214,47 @@ PlasmoidItem {
             }
         }
         appBadges = out
+    }
+
+
+    // ---------- audio ----------
+    // Flujos de audio de PipeWire/PulseAudio, igual que el task manager oficial.
+    // Se asocian a cada tarea por PID; si no coincide (Firefox reproduce desde un
+    // subproceso), por nombre de la app o por el app id del portal.
+    Instantiator {
+        id: audioStreams
+        active: Plasmoid.configuration.showAudio
+        model: PlasmaPa.PulseObjectFilterModel {
+            filters: [ { role: "VirtualStream", value: false } ]
+            sourceModel: PlasmaPa.SinkInputModel {}
+        }
+        delegate: QtObject {
+            required property var model
+            readonly property int pid: model.Client?.properties["application.process.id"] ?? 0
+            readonly property string appName: (model.Client?.properties["application.name"] ?? "").toLowerCase()
+            readonly property string portalAppId: model.Client?.properties["pipewire.access.portal.app_id"] ?? ""
+            readonly property bool muted: model.Muted
+            readonly property bool corked: model.Corked
+            function setMuted(m) { model.Muted = m }
+        }
+        onObjectAdded: root.audioRevision++
+        onObjectRemoved: root.audioRevision++
+    }
+    property int audioRevision: 0
+
+    function streamsFor(pid, appName, entry) {
+        root.audioRevision  // dependencia explícita: altas y bajas de flujos
+        const name = (appName || "").toLowerCase()
+        const out = []
+        for (let k = 0; k < audioStreams.count; k++) {
+            const st = audioStreams.objectAt(k)
+            if (!st) continue
+            if ((pid > 0 && st.pid === pid) || (name !== "" && st.appName === name)
+                    || (entry !== "" && st.portalAppId === entry)) {
+                out.push(st)
+            }
+        }
+        return out
     }
 
     // ---------- tooltip ----------
@@ -784,6 +826,45 @@ PlasmoidItem {
                             radius: parent.radius
                             color: Kirigami.Theme.highlightColor
                             Behavior on width { NumberAnimation { duration: 200 } }
+                        }
+                    }
+
+                    // ---- audio ----
+                    readonly property var streams: Plasmoid.configuration.showAudio && !isLauncher
+                        ? root.streamsFor(model.AppPid || 0, appName, desktopEntry) : []
+                    readonly property bool playing: streams.some(st => !st.corked)
+                    readonly property bool muted: streams.length > 0 && streams.every(st => st.muted)
+
+                    Rectangle {
+                        id: audioBadge
+                        visible: dockItem.playing || dockItem.muted
+                        z: 3
+                        width: Math.round(icon.width * 0.38)
+                        height: width
+                        radius: width / 2
+                        color: Qt.rgba(0, 0, 0, 0.6)
+                        x: icon.x - width * 0.25
+                        y: icon.y - height * 0.2
+
+                        Kirigami.Icon {
+                            anchors.centerIn: parent
+                            width: parent.width * 0.7
+                            height: width
+                            roundToIconSize: false
+                            color: "white"
+                            isMask: true
+                            source: dockItem.muted ? "audio-volume-muted" : "audio-volume-high"
+                        }
+
+                        // Encima del área del dock: este clic no activa la app.
+                        MouseArea {
+                            anchors.fill: parent
+                            anchors.margins: -2
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                const target = !dockItem.muted
+                                dockItem.streams.forEach(st => st.setMuted(target))
+                            }
                         }
                     }
 

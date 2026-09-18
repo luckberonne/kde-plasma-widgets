@@ -14,6 +14,7 @@ KCM.SimpleKCM {
     property alias cfg_showOnlyCurrentDesktop: currentDesktop.checked
     property alias cfg_bounceOnLaunch: bounce.checked
     property alias cfg_showBadges: badges.checked
+    property alias cfg_showAudio: audio.checked
     property alias cfg_hidePanelBackground: hideBackground.checked
 
     Kirigami.FormLayout {
@@ -73,6 +74,10 @@ KCM.SimpleKCM {
         QQC2.CheckBox {
             id: badges
             text: i18n("Notificaciones sin leer y progreso de descargas/copias")
+        }
+        QQC2.CheckBox {
+            id: audio
+            text: i18n("Indicador de audio (clic para silenciar)")
         }
         QQC2.CheckBox {
             id: bounce
