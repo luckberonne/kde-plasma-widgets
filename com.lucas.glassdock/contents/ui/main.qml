@@ -549,6 +549,19 @@ PlasmoidItem {
         dragPreviewDialog.mainItem = null
     }
 
+    // Fija cada .desktop de la lista como lanzador nuevo; ignora el resto (no
+    // tiene sentido fijar una imagen o un documento suelto). Devuelve true si
+    // fijó al menos uno, para poder confirmar el drop sólo en ese caso.
+    function pinDroppedLaunchers(urls) {
+        let pinned = false
+        for (const url of urls) {
+            if (String(url).toLowerCase().endsWith(".desktop") && tasksModel.requestAddLauncher(url)) {
+                pinned = true
+            }
+        }
+        return pinned
+    }
+
     // ---------- geometría del dock ----------
     // Centro de la celda i, sin magnificar. Todo se deriva de acá, así que el
     // layout es función pura del puntero: no hay realimentación ni temblor.
@@ -658,7 +671,14 @@ PlasmoidItem {
             const target = root.dropIndex
             root.dropIndex = -1
             root.pointer = -1000
-            if (target < 0 || !drop.hasUrls) return
+            if (!drop.hasUrls) return
+
+            // Soltar en un espacio vacío del dock (sin ningún icono debajo) fija los
+            // .desktop que traiga el arrastre, como agregar un lanzador nuevo.
+            if (target < 0) {
+                if (root.pinDroppedLaunchers(drop.urls)) drop.accept(Qt.CopyAction)
+                return
+            }
 
             const t = repeater.itemAt(target)
             tasksModel.requestOpenUrls(tasksModel.makeModelIndex(target), drop.urls)
