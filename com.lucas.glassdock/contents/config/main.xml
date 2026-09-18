@@ -36,7 +36,7 @@
       <default>true</default>
     </entry>
     <entry name="cycleIconPreview" type="Bool">
-      <default>true</default>
+      <default>false</default>
     </entry>
     <entry name="showAudio" type="Bool">
       <default>true</default>

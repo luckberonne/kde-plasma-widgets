@@ -355,6 +355,38 @@ PlasmoidItem {
                             Behavior on opacity { NumberAnimation { duration: 120 } }
                         }
 
+                        // Realce cuando un archivo arrastrado está encima de esta miniatura.
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: Kirigami.Units.cornerRadius
+                            color: Kirigami.Theme.highlightColor
+                            opacity: previewDrop.containsDrag ? 0.35 : 0
+                            Behavior on opacity { NumberAnimation { duration: 120 } }
+                        }
+
+                        // Soltar un archivo acá lo abre en esta ventana en particular.
+                        DropArea {
+                            id: previewDrop
+                            anchors.fill: parent
+                            onEntered: drag => {
+                                if (drag.formats.indexOf("text/x-plasmoidservicename") >= 0) {
+                                    drag.accepted = false
+                                }
+                            }
+                            onDropped: drop => {
+                                root.dropIndex = -1
+                                root.pointer = -1000
+                                if (!drop.hasUrls) return
+                                const t = tipRoot.task
+                                const idx = (t && t.isGroup)
+                                    ? tasksModel.makeModelIndex(root.tipIndex, previewItem.index)
+                                    : tasksModel.makeModelIndex(root.tipIndex)
+                                tasksModel.requestOpenUrls(idx, drop.urls)
+                                drop.accept(Qt.CopyAction)
+                                root.hideTips()
+                            }
+                        }
+
                         WindowPreview {
                             anchors.fill: parent
                             anchors.margins: Kirigami.Units.smallSpacing
@@ -479,26 +511,15 @@ PlasmoidItem {
         anchors.fill: parent
 
         Timer {
+            // Sólo para apps de una única ventana: la trae al frente (restaurándola
+            // si estaba minimizada) para poder soltar directamente adentro. En una
+            // app con varias ventanas no hay una obvia a elegir, así que en vez de
+            // ciclarlas se muestra el tooltip con todas para soltar en la que sea.
             id: springTimer
-            // Primera vez a los 750 ms: trae la última ventana usada (y la restaura
-            // si estaba minimizada). Si el arrastre sigue sobre el mismo icono, pasa
-            // a la siguiente ventana de la app cada segundo, para poder soltar en
-            // cualquiera. Activar el grupo en sí no traería ninguna ventana.
             interval: 750
-            repeat: true
-            property int step: 0
             onTriggered: {
-                interval = 1000
                 if (root.dropIndex < 0) return
-                const t = repeater.itemAt(root.dropIndex)
-                if (!t || t.isLauncher) return
-                if (step === 0 || !t.isGroup) {
-                    root.raiseTask(root.dropIndex)
-                    if (!t.isGroup) stop()
-                } else {
-                    root.cycleWindows(root.dropIndex, 1)
-                }
-                step++
+                root.raiseTask(root.dropIndex)
             }
         }
 
@@ -508,9 +529,15 @@ PlasmoidItem {
             root.pointer = pos          // el dock también se magnifica al arrastrar
             if (i !== root.dropIndex) {
                 root.dropIndex = i
-                springTimer.step = 0
-                springTimer.interval = 750
-                springTimer.restart()
+                springTimer.stop()
+                const t = i >= 0 ? repeater.itemAt(i) : null
+                if (t && !t.isLauncher) {
+                    if (t.isGroup && t.winIds.length > 1) {
+                        root.tipIndex = i
+                    } else {
+                        springTimer.restart()
+                    }
+                }
             }
         }
 
@@ -685,6 +712,10 @@ PlasmoidItem {
                     property int previewIndex: -1
                     readonly property bool canCycle: Plasmoid.configuration.cycleIconPreview
                         && isGroup && winIds.length > 1
+                    // Mientras se arrastra algo y este es el icono destino, si tiene
+                    // varias ventanas se muestra el tooltip para soltar en la que sea.
+                    readonly property bool dragShowsTip: dropArea.containsDrag
+                        && root.dropIndex === index && isGroup && winIds.length > 1
                     readonly property bool shouldDwell: canCycle && root.focusedIndex === index
                         && root.reorderIndex < 0 && !dropArea.containsDrag
 
@@ -758,8 +789,8 @@ PlasmoidItem {
                         mainItem: root.tipContent
                         location: Plasmoid.location
                         interactive: true
-                        active: Plasmoid.configuration.showLabels && !dropArea.containsDrag
-                                && dockItem.appName !== ""
+                        active: (Plasmoid.configuration.showLabels && !dropArea.containsDrag
+                                && dockItem.appName !== "") || dockItem.dragShowsTip
                         onContainsMouseChanged: if (containsMouse) root.tipIndex = dockItem.index
                     }
                     function hideTip() { itemTip.hideToolTip() }
