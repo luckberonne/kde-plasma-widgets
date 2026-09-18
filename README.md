@@ -49,6 +49,7 @@ Gestor de tareas para el panel con magnificación de iconos al pasar el mouse, a
 - En una app con varias ventanas, al quedarte parado sobre su icono empieza a mostrar una miniatura en vivo de cada ventana por turnos, en lugar del icono; clic para ir justo a la que se está mostrando. Desactivado por defecto.
 - Insignia con las notificaciones sin leer de cada app (las que llegaron desde la última vez que la usaste) y barra de progreso de sus trabajos en curso: copias de Dolphin, descargas, etc. Se toman del servidor de notificaciones de Plasma.
 - Indicador de audio sobre el icono de la app que está sonando, con clic para silenciarla o reactivar el sonido.
+- Preferencias por app: clic derecho → "Sin insignias ni audio para esta app" excluye esa app puntual de ambas cosas, sin afectar al resto.
 - Rueda del mouse sobre un icono para recorrer las ventanas de esa app, y atajos Meta+1…9 para activar la app según su posición (el widget declara `org.kde.plasma.multitasking`, que es lo que busca plasmashell para esos atajos).
 - Reordenar los iconos arrastrándolos; el orden de las apps fijadas se guarda al soltar. Si sacás un lanzador fijo fuera del propio dock (por ejemplo hacia el dock de otra pantalla), pasa a ser un arrastre real del sistema: se fija en el dock donde lo sueltes y se quita del original.
 - Publica la posición de cada icono a KWin, así la animación de minimizar (lámpara mágica, squash) va hacia el icono correcto.

@@ -47,5 +47,8 @@
     <entry name="bounceOnLaunch" type="Bool">
       <default>true</default>
     </entry>
+    <entry name="excludedApps" type="StringList">
+      <default></default>
+    </entry>
   </group>
 </kcfg>

@@ -552,6 +552,15 @@ PlasmoidItem {
     // Fija cada .desktop de la lista como lanzador nuevo; ignora el resto (no
     // tiene sentido fijar una imagen o un documento suelto). Devuelve true si
     // fijó al menos uno, para poder confirmar el drop sólo en ese caso.
+    function toggleAppExcluded(entry) {
+        if (!entry) return
+        const list = Plasmoid.configuration.excludedApps.slice()
+        const i = list.indexOf(entry)
+        if (i >= 0) list.splice(i, 1)
+        else list.push(entry)
+        Plasmoid.configuration.excludedApps = list
+    }
+
     function pinDroppedLaunchers(urls) {
         let pinned = false
         for (const url of urls) {
@@ -1060,7 +1069,10 @@ PlasmoidItem {
                     // ---- insignias y progreso ----
                     // Calculadas en root.appBadges a partir de las notificaciones de Plasma.
                     readonly property var badgeInfo: root.appBadges[desktopEntry] || null
+                    readonly property bool excludedFromExtras: desktopEntry !== ""
+                        && Plasmoid.configuration.excludedApps.indexOf(desktopEntry) >= 0
                     readonly property bool badgesOn: Plasmoid.configuration.showBadges && desktopEntry !== ""
+                        && !excludedFromExtras
                     readonly property int unread: badgesOn && badgeInfo ? badgeInfo.unread : 0
                     readonly property bool busy: badgesOn && badgeInfo !== null && badgeInfo.jobs > 0
                     readonly property real progress: busy ? badgeInfo.percent / badgeInfo.jobs : 0
@@ -1109,7 +1121,7 @@ PlasmoidItem {
                     }
 
                     // ---- audio ----
-                    readonly property var streams: Plasmoid.configuration.showAudio && !isLauncher
+                    readonly property var streams: Plasmoid.configuration.showAudio && !isLauncher && !excludedFromExtras
                         ? root.streamsFor(model.AppPid || 0, appName, desktopEntry) : []
                     readonly property bool playing: streams.some(st => !st.corked)
                     readonly property bool muted: streams.length > 0 && streams.every(st => st.muted)
@@ -1190,6 +1202,14 @@ PlasmoidItem {
         id: contextMenu
         property int taskIndex: -1
         property bool isLauncher: false
+        // desktopEntry de la tarea sobre la que se abrió el menú; -1/"" cuando no
+        // hay ninguna app que excluir (por ejemplo, con el índice todavía sin fijar).
+        readonly property string entry: {
+            const t = taskIndex >= 0 ? repeater.itemAt(taskIndex) : null
+            return t ? t.desktopEntry : ""
+        }
+        onAboutToShow: excludeItem.checked = entry !== ""
+            && Plasmoid.configuration.excludedApps.indexOf(entry) >= 0
 
         QQC2.MenuItem {
             text: i18n("Nueva ventana")
@@ -1203,6 +1223,17 @@ PlasmoidItem {
                 if (contextMenu.isLauncher) tasksModel.requestRemoveLauncher(t.launcherUrl)
                 else tasksModel.requestAddLauncher(t.launcherUrl)
             }
+        }
+        QQC2.MenuSeparator {}
+        // No se liga `checked` a una expresión: al tocarlo, Qt lo reescribe a
+        // mano igual que con Timer.running (ver dwellTimer más arriba), rompiendo
+        // el binding para siempre. Se recalcula explícitamente en cada apertura.
+        QQC2.MenuItem {
+            id: excludeItem
+            text: i18n("Sin insignias ni audio para esta app")
+            checkable: true
+            enabled: contextMenu.entry !== ""
+            onTriggered: root.toggleAppExcluded(contextMenu.entry)
         }
         QQC2.MenuSeparator {}
         QQC2.MenuItem {
