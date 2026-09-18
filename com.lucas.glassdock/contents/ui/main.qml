@@ -475,6 +475,7 @@ PlasmoidItem {
                     required property var model
 
                     readonly property bool isLauncher: model.IsLauncher === true
+                    readonly property bool isStartup: model.IsStartup === true
                     readonly property var winIds: model.WinIdList !== undefined ? model.WinIdList : []
                     readonly property bool isGroup: model.IsGroupParent === true
                     readonly property var launcherUrl: model.LauncherUrlWithoutIcon
@@ -497,7 +498,23 @@ PlasmoidItem {
                     Behavior on shift { NumberAnimation { duration: 130; easing.type: Easing.OutCubic } }
 
                     function bounce() {
-                        if (Plasmoid.configuration.bounceOnLaunch) bounceAnim.restart()
+                        if (Plasmoid.configuration.bounceOnLaunch && !startupBounce.running) bounceAnim.restart()
+                    }
+
+                    // Mientras la app arranca (IsStartup), el icono rebota en bucle hasta
+                    // que aparece su ventana, como en macOS; después aterriza suave.
+                    function startBouncing() {
+                        if (!Plasmoid.configuration.bounceOnLaunch) return
+                        bounceAnim.stop()
+                        startupBounce.restart()
+                    }
+                    onIsStartupChanged: {
+                        if (isStartup) {
+                            startBouncing()
+                        } else if (startupBounce.running) {
+                            startupBounce.stop()
+                            settleAnim.restart()
+                        }
                     }
 
                     // Área de tooltip de este icono; el contenido es el compartido.
@@ -544,7 +561,11 @@ PlasmoidItem {
                             geometryAnchor)
                     }
 
-                    Component.onCompleted: publishTimer.restart()
+                    Component.onCompleted: {
+                        publishTimer.restart()
+                        // Una app lanzada desde otro lado aparece ya en estado de arranque.
+                        if (isStartup) startBouncing()
+                    }
                     onIndexChanged: publishTimer.restart()
                     onIsLauncherChanged: publishTimer.restart()
                     onIsGroupChanged: publishTimer.restart()
@@ -588,6 +609,18 @@ PlasmoidItem {
                         property real hop: 0
                         NumberAnimation { target: bounceAnim; property: "hop"; to: root.baseIcon * 0.45; duration: 220; easing.type: Easing.OutQuad }
                         NumberAnimation { target: bounceAnim; property: "hop"; to: 0; duration: 380; easing.type: Easing.OutBounce }
+                    }
+                    SequentialAnimation {
+                        id: startupBounce
+                        loops: Animation.Infinite
+                        NumberAnimation { target: bounceAnim; property: "hop"; to: root.baseIcon * 0.4; duration: 260; easing.type: Easing.OutQuad }
+                        NumberAnimation { target: bounceAnim; property: "hop"; to: 0; duration: 260; easing.type: Easing.InQuad }
+                        PauseAnimation { duration: 120 }
+                    }
+                    NumberAnimation {
+                        id: settleAnim
+                        target: bounceAnim; property: "hop"; to: 0
+                        duration: 200; easing.type: Easing.OutQuad
                     }
 
                     // Realce del destino mientras se arrastra algo encima.
