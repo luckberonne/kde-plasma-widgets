@@ -13,6 +13,7 @@ KCM.SimpleKCM {
     property alias cfg_showOnlyCurrentScreen: currentScreen.checked
     property alias cfg_showOnlyCurrentDesktop: currentDesktop.checked
     property alias cfg_bounceOnLaunch: bounce.checked
+    property alias cfg_showBadges: badges.checked
     property alias cfg_hidePanelBackground: hideBackground.checked
 
     Kirigami.FormLayout {
@@ -68,6 +69,10 @@ KCM.SimpleKCM {
         QQC2.CheckBox {
             id: previews
             text: i18n("Miniatura en vivo de las ventanas abiertas")
+        }
+        QQC2.CheckBox {
+            id: badges
+            text: i18n("Notificaciones sin leer y progreso de descargas/copias")
         }
         QQC2.CheckBox {
             id: bounce

@@ -12,6 +12,7 @@ import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
 import org.kde.kirigami as Kirigami
 import org.kde.taskmanager as TaskManager
+import org.kde.notificationmanager as NotificationManager
 
 PlasmoidItem {
     id: root
@@ -154,6 +155,65 @@ PlasmoidItem {
         children.forEach(idx => tasksModel.requestClose(idx))
     }
 
+
+
+    // ---------- insignias ----------
+    // Un único modelo con todas las notificaciones y trabajos de Plasma, contado
+    // por app (desktopEntry). No sirve filtrar con whitelistedDesktopEntries: esa
+    // lista es de excepciones al bloqueo, no un filtro. Tampoco se puede usar la
+    // API Unity LauncherEntry: cada app la emite desde su propio servicio y ruta,
+    // y el SignalWatcher de Plasma exige servicio y ruta fijos.
+    NotificationManager.Notifications {
+        id: allNotifs
+        showNotifications: true
+        showJobs: true
+        showExpired: true
+        onCountChanged: badgeTimer.restart()
+        onDataChanged: badgeTimer.restart()
+        onModelReset: badgeTimer.restart()
+    }
+    DelegateModel {
+        id: notifProbe
+        model: allNotifs
+        delegate: Item {}
+    }
+
+    readonly property date startedAt: new Date()
+    property var seenAt: ({})      // desktopEntry -> última vez que se usó la app
+    property var appBadges: ({})   // desktopEntry -> { unread, jobs, percent }
+
+    Timer {
+        id: badgeTimer
+        interval: 150
+        onTriggered: root.recomputeBadges()
+    }
+
+    function markSeen(entry) {
+        if (!entry) return
+        const m = Object.assign({}, seenAt)
+        m[entry] = new Date()
+        seenAt = m
+        recomputeBadges()
+    }
+
+    function recomputeBadges() {
+        const out = {}
+        for (let j = 0; j < notifProbe.items.count; j++) {
+            const m = notifProbe.items.get(j).model
+            const entry = m.desktopEntry
+            if (!entry) continue
+            const b = out[entry] || (out[entry] = { unread: 0, jobs: 0, percent: 0 })
+            if (m.type === NotificationManager.Notifications.NotificationType) {
+                // "Sin leer" = llegó después de la última vez que usaste la app.
+                if (!m.read && m.created > (seenAt[entry] || startedAt)) b.unread++
+            } else if (m.type === NotificationManager.Notifications.JobType
+                       && m.jobState === NotificationManager.Notifications.JobStateRunning) {
+                b.jobs++
+                b.percent += m.percentage || 0
+            }
+        }
+        appBadges = out
+    }
 
     // ---------- tooltip ----------
     // Un único contenido compartido por las áreas de tooltip de todos los iconos
@@ -526,6 +586,9 @@ PlasmoidItem {
 
                     readonly property bool isLauncher: model.IsLauncher === true
                     readonly property bool isStartup: model.IsStartup === true
+                    // Nombre de la entrada .desktop (sin extensión): es la clave con la
+                    // que Plasma asocia notificaciones y trabajos a cada app.
+                    readonly property string desktopEntry: (model.AppId || "").replace(/\.desktop$/, "")
                     readonly property var winIds: model.WinIdList !== undefined ? model.WinIdList : []
                     readonly property bool isGroup: model.IsGroupParent === true
                     readonly property var launcherUrl: model.LauncherUrlWithoutIcon
@@ -671,6 +734,57 @@ PlasmoidItem {
                         id: settleAnim
                         target: bounceAnim; property: "hop"; to: 0
                         duration: 200; easing.type: Easing.OutQuad
+                    }
+
+                    // ---- insignias y progreso ----
+                    // Calculadas en root.appBadges a partir de las notificaciones de Plasma.
+                    readonly property var badgeInfo: root.appBadges[desktopEntry] || null
+                    readonly property bool badgesOn: Plasmoid.configuration.showBadges && desktopEntry !== ""
+                    readonly property int unread: badgesOn && badgeInfo ? badgeInfo.unread : 0
+                    readonly property bool busy: badgesOn && badgeInfo !== null && badgeInfo.jobs > 0
+                    readonly property real progress: busy ? badgeInfo.percent / badgeInfo.jobs : 0
+                    // Usar la app "lee" sus notificaciones: la insignia se limpia.
+                    onIsActiveChanged: if (isActive) root.markSeen(desktopEntry)
+
+                    Rectangle {
+                        id: badge
+                        visible: dockItem.unread > 0
+                        z: 2
+                        height: Math.round(icon.height * 0.36)
+                        width: Math.max(height, badgeText.implicitWidth + height * 0.5)
+                        radius: height / 2
+                        color: Kirigami.Theme.negativeTextColor
+                        x: icon.x + icon.width - width * 0.75
+                        y: icon.y - height * 0.2
+
+                        Text {
+                            id: badgeText
+                            anchors.centerIn: parent
+                            text: dockItem.unread > 99 ? "99+" : dockItem.unread
+                            color: "white"
+                            font.pixelSize: parent.height * 0.62
+                            font.bold: true
+                        }
+                    }
+
+                    Rectangle {
+                        id: progressTrack
+                        visible: dockItem.busy
+                        z: 2
+                        width: icon.width * 0.8
+                        height: Math.max(3, Math.round(icon.height * 0.09))
+                        radius: height / 2
+                        x: icon.x + (icon.width - width) / 2
+                        y: icon.y + icon.height - height * 1.6
+                        color: Qt.rgba(0, 0, 0, 0.55)
+
+                        Rectangle {
+                            width: parent.width * Math.max(0, Math.min(100, dockItem.progress)) / 100
+                            height: parent.height
+                            radius: parent.radius
+                            color: Kirigami.Theme.highlightColor
+                            Behavior on width { NumberAnimation { duration: 200 } }
+                        }
                     }
 
                     // Realce del destino mientras se arrastra algo encima.
