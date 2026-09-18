@@ -49,6 +49,7 @@ PlasmoidItem {
     // El tooltip recuerda su tarea aunque el puntero ya haya salido del dock:
     // si no, se cerraría justo cuando vas a hacer clic en una miniatura.
     property int tipIndex: -1
+    property int reorderIndex: -1  // icono que se está arrastrando para reordenar
     // repeater.itemAt() no notifica cuando el Repeater recrea un delegate (pasa al
     // abrir o activar una app). Este contador se incrementa con cada cambio del
     // modelo y fuerza a volver a buscarlo, en vez de quedarse con uno destruido.
@@ -361,7 +362,47 @@ PlasmoidItem {
                 if (root.focusedIndex >= 0) root.tipIndex = root.focusedIndex
             }
 
-            onPositionChanged: mouse => track(mouse)
+            // ---- reordenar arrastrando ----
+            // Pasada la distancia de arrastre del sistema, el icono presionado se
+            // mueve en el modelo cada vez que el puntero entra en otra celda, como
+            // en el task manager oficial. Al soltar se guarda el orden de lanzadores.
+            property point pressPos: Qt.point(0, 0)
+            property bool reordering: false
+
+            onPressed: mouse => {
+                track(mouse)
+                pressPos = Qt.point(mouse.x, mouse.y)
+                reordering = false
+                root.reorderIndex = mouse.button === Qt.LeftButton ? root.focusedIndex : -1
+            }
+
+            onPositionChanged: mouse => {
+                track(mouse)
+                if (!pressed || root.reorderIndex < 0) return
+
+                if (!reordering) {
+                    const moved = root.vertical ? Math.abs(mouse.y - pressPos.y)
+                                                : Math.abs(mouse.x - pressPos.x)
+                    if (moved < Qt.styleHints.startDragDistance) return
+                    reordering = true
+                    root.hideTips()
+                }
+
+                const target = root.focusedIndex
+                if (target >= 0 && target !== root.reorderIndex
+                        && tasksModel.move(root.reorderIndex, target)) {
+                    root.reorderIndex = target
+                }
+            }
+
+            onReleased: {
+                if (reordering) tasksModel.syncLaunchers()
+                root.reorderIndex = -1
+            }
+            onCanceled: {
+                reordering = false
+                root.reorderIndex = -1
+            }
             onEntered: {
                 root.pointer = root.vertical ? mouseY : mouseX
                 root.focusedIndex = root.indexAt(root.pointer)
@@ -375,6 +416,11 @@ PlasmoidItem {
             }
 
             onClicked: mouse => {
+                // Soltar después de reordenar no es un clic.
+                if (reordering) {
+                    reordering = false
+                    return
+                }
                 root.hideTips()
                 track(mouse)
                 const i = root.focusedIndex
@@ -551,7 +597,7 @@ PlasmoidItem {
                         height: width
                         radius: Kirigami.Units.cornerRadius
                         color: Kirigami.Theme.highlightColor
-                        opacity: root.dropIndex === dockItem.index ? 0.35 : 0
+                        opacity: (root.dropIndex === dockItem.index || root.reorderIndex === dockItem.index) ? 0.35 : 0
                         Behavior on opacity { NumberAnimation { duration: 120 } }
                     }
 
