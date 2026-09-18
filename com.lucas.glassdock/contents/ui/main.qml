@@ -279,6 +279,17 @@ PlasmoidItem {
 
         readonly property var task: root.tipTask
         readonly property var windows: root.tipWindows
+        property bool dragInside: false
+        function pingDragInside() { dragInside = true; dragInsideTimer.restart() }
+        Timer { id: dragInsideTimer; interval: 500; onTriggered: tipRoot.dragInside = false }
+
+        DropArea {
+            id: tipBackgroundDrop
+            anchors.fill: parent
+            z: -1
+            onEntered: tipRoot.pingDragInside()
+            onPositionChanged: tipRoot.pingDragInside()
+        }
         readonly property bool hasPreviews: Plasmoid.configuration.showPreviews && windows.length > 0
         readonly property real previewW: Kirigami.Units.gridUnit * 12
         readonly property real previewH: previewW * 0.6
@@ -345,6 +356,57 @@ PlasmoidItem {
                             }
                             tasksModel.requestActivate(idx)
                             root.hideTips()
+                            root.closeDragPreview()
+                        }
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: Kirigami.Units.cornerRadius
+                            color: Kirigami.Theme.highlightColor
+                            opacity: previewDrop.containsDrag ? 0.35 : 0
+                            Behavior on opacity { NumberAnimation { duration: 120 } }
+                        }
+
+                        // Al quedarte parado sobre una miniatura, la trae al frente sin
+                        // cerrar el popup ni soltar nada -- para poder soltar directo en la
+                        // ventana real en vez de en la miniatura chica, si se prefiere.
+                        Timer {
+                            id: raiseWindowTimer
+                            interval: 700
+                            onTriggered: {
+                                const t = tipRoot.task
+                                const idx = (t && t.isGroup)
+                                    ? tasksModel.makeModelIndex(root.tipIndex, previewItem.index)
+                                    : tasksModel.makeModelIndex(root.tipIndex)
+                                tasksModel.requestActivate(idx)
+                            }
+                        }
+
+                        // Soltar un archivo acá lo abre en esta ventana en particular.
+                        DropArea {
+                            id: previewDrop
+                            anchors.fill: parent
+                            onEntered: drag => {
+                                tipRoot.pingDragInside()
+                                raiseWindowTimer.restart()
+                            }
+                            onPositionChanged: drag => tipRoot.pingDragInside()
+                            onExited: raiseWindowTimer.stop()
+                            onDropped: drop => {
+                                raiseWindowTimer.stop()
+                                exitGraceTimer.stop()
+                                root.dropIndex = -1
+                                root.pointer = -1000
+                                root.closeDragPreview()
+                                if (!drop.hasUrls) return
+                                const t = tipRoot.task
+                                const idx = (t && t.isGroup)
+                                    ? tasksModel.makeModelIndex(root.tipIndex, previewItem.index)
+                                    : tasksModel.makeModelIndex(root.tipIndex)
+                                tasksModel.requestOpenUrls(idx, drop.urls)
+                                drop.accept(Qt.CopyAction)
+                                root.hideTips()
+                            }
                         }
 
                         Rectangle {
@@ -436,6 +498,31 @@ PlasmoidItem {
         activateTask(index)
     }
 
+    // ---------- popup de arrastre ----------
+    // El tooltip normal de hover (PlasmaCore.ToolTipArea) es una ventana marcada
+    // como "Tooltip": KWin no le enruta el drag-and-drop de Wayland a ese tipo de
+    // ventana (el popup abría, pero el arrastre se perdía en el mismo instante).
+    // Este es un PlasmaCore.Dialog aparte, sin ese tipo, que sí participa del
+    // protocolo de arrastre -- por eso el arrastre necesita su propio popup en
+    // vez de reusar el tooltip de hover normal.
+    PlasmaCore.Dialog {
+        id: dragPreviewDialog
+        location: Plasmoid.location
+        visible: false
+    }
+
+    function openDragPreview(i) {
+        const t = repeater.itemAt(i)
+        if (!t) return
+        dragPreviewDialog.visualParent = t
+        dragPreviewDialog.mainItem = root.tipContent
+        dragPreviewDialog.visible = true
+    }
+    function closeDragPreview() {
+        dragPreviewDialog.visible = false
+        dragPreviewDialog.mainItem = null
+    }
+
     // ---------- geometría del dock ----------
     // Centro de la celda i, sin magnificar. Todo se deriva de acá, así que el
     // layout es función pura del puntero: no hay realimentación ni temblor.
@@ -480,37 +567,35 @@ PlasmoidItem {
 
         Timer {
             id: springTimer
-            // Primera vez a los 750 ms: trae la última ventana usada (y la restaura
-            // si estaba minimizada). Si el arrastre sigue sobre el mismo icono, pasa
-            // a la siguiente ventana de la app cada segundo, para poder soltar en
-            // cualquiera. Activar el grupo en sí no traería ninguna ventana.
+            // Sólo para apps de una única ventana: la trae al frente (restaurándola
+            // si estaba minimizada) para poder soltar directamente adentro. Con
+            // varias ventanas se usa el popup de arrastre en su lugar (más abajo).
             interval: 750
-            repeat: true
-            property int step: 0
             onTriggered: {
-                interval = 1000
                 if (root.dropIndex < 0) return
-                const t = repeater.itemAt(root.dropIndex)
-                if (!t || t.isLauncher) return
-                if (step === 0 || !t.isGroup) {
-                    root.raiseTask(root.dropIndex)
-                    if (!t.isGroup) stop()
-                } else {
-                    root.cycleWindows(root.dropIndex, 1)
-                }
-                step++
+                root.raiseTask(root.dropIndex)
             }
         }
 
         function updateTarget(x, y) {
+            exitGraceTimer.stop()
             const pos = root.vertical ? y : x
             const i = root.indexAt(pos)
             root.pointer = pos          // el dock también se magnifica al arrastrar
             if (i !== root.dropIndex) {
                 root.dropIndex = i
-                springTimer.step = 0
-                springTimer.interval = 750
-                springTimer.restart()
+                springTimer.stop()
+                const t = i >= 0 ? repeater.itemAt(i) : null
+                if (t && !t.isLauncher && t.isGroup && t.winIds.length > 1) {
+                    // El popup ya deja elegir la ventana exacta: no hace falta ir
+                    // trayendo ventanas reales al frente por su cuenta mientras tanto,
+                    // eso solo compite con lo que se está mirando en el popup.
+                    root.tipIndex = i
+                    root.openDragPreview(i)
+                } else {
+                    root.closeDragPreview()
+                    if (t && !t.isLauncher) springTimer.restart()
+                }
             }
         }
 
@@ -525,12 +610,25 @@ PlasmoidItem {
         }
         onExited: {
             springTimer.stop()
-            root.dropIndex = -1
-            root.pointer = -1000
+            exitGraceTimer.restart()
+        }
+
+        Timer {
+            id: exitGraceTimer
+            interval: 200
+            onTriggered: {
+                if (dropArea.containsDrag) return
+                if (root.tipContent.dragInside) return
+                root.closeDragPreview()
+                root.dropIndex = -1
+                root.pointer = -1000
+            }
         }
 
         onDropped: drop => {
             springTimer.stop()
+            exitGraceTimer.stop()
+            root.closeDragPreview()
             const target = root.dropIndex
             root.dropIndex = -1
             root.pointer = -1000
