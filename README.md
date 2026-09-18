@@ -40,7 +40,7 @@ Gestor de tareas para el panel con magnificación de iconos al pasar el mouse, a
 - El layout es función pura de la posición del puntero (se calcula sobre las celdas base, no sobre las ya escaladas), así que no hay realimentación ni temblor.
 - El tamaño del applet no cambia durante la magnificación: el espacio del zoom queda reservado de antemano, por lo que no empuja al resto de los widgets del panel.
 - El tamaño base del icono se limita solo para que el zoom nunca quede recortado contra el borde del panel.
-- Lanzadores fijos y ventanas abiertas en la misma tira, con punto indicador (más ancho en la ventana activa) y atenuación de las minimizadas.
+- Lanzadores fijos y ventanas abiertas en la misma tira, con un punto indicador por cada ventana abierta (acotado a 3, para no saturar el borde) y atenuación de las minimizadas.
 - Miniatura en vivo de las ventanas abiertas al pasar el mouse (vía PipeWire en Wayland, hasta 12 en una grilla de 4 columnas), con clic para saltar a la ventana; si el stream no está disponible cae al icono de la aplicación.
 - Arrastrá un `.desktop` a un espacio vacío del dock para fijarlo como lanzador nuevo.
 - Arrastrá archivos sobre un icono para abrirlos con esa aplicación; si te quedás encima sin soltar, la ventana se trae al frente (spring-loading) para soltar directamente adentro.

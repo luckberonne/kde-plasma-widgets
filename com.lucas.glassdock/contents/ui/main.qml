@@ -1170,17 +1170,15 @@ PlasmoidItem {
                         Behavior on opacity { NumberAnimation { duration: 120 } }
                     }
 
-                    // Punto indicador de ventana abierta.
-                    Rectangle {
-                        visible: !dockItem.isLauncher
-                        readonly property real longSide: dockItem.isActive ? root.baseIcon * 0.26 : root.baseIcon * 0.11
-                        readonly property real shortSide: root.baseIcon * 0.11
-                        width: root.vertical ? shortSide : longSide
-                        height: root.vertical ? longSide : shortSide
-                        radius: Math.min(width, height) / 2
-                        color: dockItem.needsAttention ? Kirigami.Theme.negativeTextColor
-                                                       : Kirigami.Theme.textColor
-                        opacity: dockItem.isActive ? 0.95 : 0.6
+                    // Un punto por ventana abierta, acotado a 3 -- más que eso satura
+                    // visualmente el borde sin aportar información extra.
+                    property int dotCount: Math.min(dockItem.winIds.length, 3)
+                    readonly property real dotSize: root.baseIcon * (dockItem.isActive ? 0.13 : 0.11)
+                    readonly property real dotGap: root.baseIcon * 0.05
+
+                    Loader {
+                        active: !dockItem.isLauncher && dockItem.dotCount > 0
+                        sourceComponent: root.vertical ? dotColumn : dotRow
 
                         x: !root.vertical ? (parent.width - width) / 2
                            : root.edgeRight ? parent.width - (root.dotSpace + width) / 2
@@ -1188,9 +1186,43 @@ PlasmoidItem {
                         y: root.vertical ? (parent.height - height) / 2
                            : root.edgeTop ? (root.dotSpace - height) / 2
                            : parent.height - (root.dotSpace + height) / 2
+                    }
 
-                        Behavior on width { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
-                        Behavior on height { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                    Component {
+                        id: dotRow
+                        Row {
+                            spacing: dockItem.dotGap
+                            Repeater {
+                                model: dockItem.dotCount
+                                delegate: Rectangle {
+                                    width: dockItem.dotSize
+                                    height: width
+                                    radius: width / 2
+                                    color: dockItem.needsAttention ? Kirigami.Theme.negativeTextColor
+                                                                   : Kirigami.Theme.textColor
+                                    opacity: dockItem.isActive ? 0.95 : 0.6
+                                    Behavior on width { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                                }
+                            }
+                        }
+                    }
+                    Component {
+                        id: dotColumn
+                        Column {
+                            spacing: dockItem.dotGap
+                            Repeater {
+                                model: dockItem.dotCount
+                                delegate: Rectangle {
+                                    width: dockItem.dotSize
+                                    height: width
+                                    radius: width / 2
+                                    color: dockItem.needsAttention ? Kirigami.Theme.negativeTextColor
+                                                                   : Kirigami.Theme.textColor
+                                    opacity: dockItem.isActive ? 0.95 : 0.6
+                                    Behavior on width { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                                }
+                            }
+                        }
                     }
                 }
             }
