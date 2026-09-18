@@ -279,16 +279,6 @@ PlasmoidItem {
 
         readonly property var task: root.tipTask
         readonly property var windows: root.tipWindows
-        // El tooltip es una ventana propia: al abrirse, el arrastre pasa a esa
-        // superficie y el dock recibe un "salió" aunque el usuario siga sobre el
-        // popup. Esto le avisa al dock que el arrastre sigue en algún lado válido.
-        readonly property bool dragInside: tipBackgroundDrop.containsDrag
-
-        DropArea {
-            id: tipBackgroundDrop
-            anchors.fill: parent
-            z: -1
-        }
         readonly property bool hasPreviews: Plasmoid.configuration.showPreviews && windows.length > 0
         readonly property real previewW: Kirigami.Units.gridUnit * 12
         readonly property real previewH: previewW * 0.6
@@ -363,39 +353,6 @@ PlasmoidItem {
                             color: Kirigami.Theme.textColor
                             opacity: previewItem.containsMouse ? 0.14 : 0.06
                             Behavior on opacity { NumberAnimation { duration: 120 } }
-                        }
-
-                        // Realce cuando un archivo arrastrado está encima de esta miniatura.
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: Kirigami.Units.cornerRadius
-                            color: Kirigami.Theme.highlightColor
-                            opacity: previewDrop.containsDrag ? 0.35 : 0
-                            Behavior on opacity { NumberAnimation { duration: 120 } }
-                        }
-
-                        // Soltar un archivo acá lo abre en esta ventana en particular.
-                        DropArea {
-                            id: previewDrop
-                            anchors.fill: parent
-                            onEntered: drag => {
-                                if (drag.formats.indexOf("text/x-plasmoidservicename") >= 0) {
-                                    drag.accepted = false
-                                }
-                            }
-                            onDropped: drop => {
-                                exitGraceTimer.stop()
-                                root.dropIndex = -1
-                                root.pointer = -1000
-                                if (!drop.hasUrls) return
-                                const t = tipRoot.task
-                                const idx = (t && t.isGroup)
-                                    ? tasksModel.makeModelIndex(root.tipIndex, previewItem.index)
-                                    : tasksModel.makeModelIndex(root.tipIndex)
-                                tasksModel.requestOpenUrls(idx, drop.urls)
-                                drop.accept(Qt.CopyAction)
-                                root.hideTips()
-                            }
                         }
 
                         WindowPreview {
@@ -522,39 +479,38 @@ PlasmoidItem {
         anchors.fill: parent
 
         Timer {
-            // Sólo para apps de una única ventana: la trae al frente (restaurándola
-            // si estaba minimizada) para poder soltar directamente adentro. En una
-            // app con varias ventanas no hay una obvia a elegir, así que en vez de
-            // ciclarlas se muestra el tooltip con todas para soltar en la que sea.
             id: springTimer
+            // Primera vez a los 750 ms: trae la última ventana usada (y la restaura
+            // si estaba minimizada). Si el arrastre sigue sobre el mismo icono, pasa
+            // a la siguiente ventana de la app cada segundo, para poder soltar en
+            // cualquiera. Activar el grupo en sí no traería ninguna ventana.
             interval: 750
+            repeat: true
+            property int step: 0
             onTriggered: {
+                interval = 1000
                 if (root.dropIndex < 0) return
-                root.raiseTask(root.dropIndex)
+                const t = repeater.itemAt(root.dropIndex)
+                if (!t || t.isLauncher) return
+                if (step === 0 || !t.isGroup) {
+                    root.raiseTask(root.dropIndex)
+                    if (!t.isGroup) stop()
+                } else {
+                    root.cycleWindows(root.dropIndex, 1)
+                }
+                step++
             }
         }
 
         function updateTarget(x, y) {
-            exitGraceTimer.stop()
             const pos = root.vertical ? y : x
             const i = root.indexAt(pos)
             root.pointer = pos          // el dock también se magnifica al arrastrar
             if (i !== root.dropIndex) {
-                if (root.dropIndex >= 0) {
-                    const prev = repeater.itemAt(root.dropIndex)
-                    if (prev) prev.hideTip()
-                }
                 root.dropIndex = i
-                springTimer.stop()
-                const t = i >= 0 ? repeater.itemAt(i) : null
-                if (t && !t.isLauncher) {
-                    if (t.isGroup && t.winIds.length > 1) {
-                        root.tipIndex = i
-                        t.showTip()
-                    } else {
-                        springTimer.restart()
-                    }
-                }
+                springTimer.step = 0
+                springTimer.interval = 750
+                springTimer.restart()
             }
         }
 
@@ -569,48 +525,19 @@ PlasmoidItem {
         }
         onExited: {
             springTimer.stop()
-            exitGraceTimer.restart()
-        }
-
-        // Al salir del dock puede ser que el arrastre haya entrado al tooltip (otra
-        // ventana), no que el usuario se haya ido. Se espera un instante antes de
-        // cerrar, y se cancela si para entonces el arrastre reapareció en el dock o
-        // sigue dentro del propio tooltip.
-        Timer {
-            id: exitGraceTimer
-            interval: 200
-            onTriggered: {
-                if (dropArea.containsDrag) return
-                if (root.tipIndex >= 0 && root.tipContent.dragInside) return
-                if (root.dropIndex >= 0) {
-                    const t = repeater.itemAt(root.dropIndex)
-                    if (t) t.hideTip()
-                }
-                root.dropIndex = -1
-                root.pointer = -1000
-            }
+            root.dropIndex = -1
+            root.pointer = -1000
         }
 
         onDropped: drop => {
             springTimer.stop()
-            exitGraceTimer.stop()
             const target = root.dropIndex
             root.dropIndex = -1
             root.pointer = -1000
-            const t = target >= 0 ? repeater.itemAt(target) : null
-            if (t) t.hideTip()
             if (target < 0 || !drop.hasUrls) return
 
-            // Con varias ventanas el tooltip ya estaba abierto para elegir una: soltar
-            // sobre el icono mismo (no sobre una miniatura) abre en la más reciente.
-            if (t && t.isGroup && t.winIds.length > 1) {
-                const child = root.mostRecentChild(target)
-                tasksModel.requestOpenUrls(
-                    child >= 0 ? tasksModel.makeModelIndex(target, child) : tasksModel.makeModelIndex(target),
-                    drop.urls)
-            } else {
-                tasksModel.requestOpenUrls(tasksModel.makeModelIndex(target), drop.urls)
-            }
+            const t = repeater.itemAt(target)
+            tasksModel.requestOpenUrls(tasksModel.makeModelIndex(target), drop.urls)
             if (t) t.bounce()
             drop.accept(Qt.CopyAction)
         }
@@ -758,10 +685,6 @@ PlasmoidItem {
                     property int previewIndex: -1
                     readonly property bool canCycle: Plasmoid.configuration.cycleIconPreview
                         && isGroup && winIds.length > 1
-                    // Mientras se arrastra algo y este es el icono destino, si tiene
-                    // varias ventanas se muestra el tooltip para soltar en la que sea.
-                    readonly property bool dragShowsTip: dropArea.containsDrag
-                        && root.dropIndex === index && isGroup && winIds.length > 1
                     readonly property bool shouldDwell: canCycle && root.focusedIndex === index
                         && root.reorderIndex < 0 && !dropArea.containsDrag
 
@@ -835,11 +758,10 @@ PlasmoidItem {
                         mainItem: root.tipContent
                         location: Plasmoid.location
                         interactive: true
-                        active: (Plasmoid.configuration.showLabels && !dropArea.containsDrag
-                                && dockItem.appName !== "") || dockItem.dragShowsTip
+                        active: Plasmoid.configuration.showLabels && !dropArea.containsDrag
+                                && dockItem.appName !== ""
                         onContainsMouseChanged: if (containsMouse) root.tipIndex = dockItem.index
                     }
-                    function showTip() { itemTip.showToolTip() }
                     function hideTip() { itemTip.hideToolTip() }
 
                     // ---- geometría para KWin ----
