@@ -153,6 +153,112 @@ PlasmoidItem {
         children.forEach(idx => tasksModel.requestClose(idx))
     }
 
+
+    // ---------- tooltip ----------
+    // Un único contenido compartido por las áreas de tooltip de todos los iconos
+    // (como el task manager oficial): Plasma ubica el tooltip sobre el icono y lo
+    // desliza de uno a otro, y el contenido sigue a tipIndex.
+    readonly property var tipTask: {
+        root.modelRevision  // dependencia explícita, ver modelRevision
+        return root.tipIndex >= 0 ? repeater.itemAt(root.tipIndex) : null
+    }
+    readonly property var tipWindows: tipTask && !tipTask.isLauncher ? tipTask.winIds : []
+
+    function hideTips() {
+        for (let i = 0; i < repeater.count; i++) {
+            const it = repeater.itemAt(i)
+            if (it) it.hideTip()
+        }
+    }
+
+    property Item tipContent: Item {
+        id: tipRoot
+
+        readonly property var task: root.tipTask
+        readonly property var windows: root.tipWindows
+        readonly property bool hasPreviews: Plasmoid.configuration.showPreviews && windows.length > 0
+        readonly property real previewW: Kirigami.Units.gridUnit * 12
+        readonly property real previewH: previewW * 0.6
+        readonly property int shown: Math.min(windows.length, 4)
+
+        implicitWidth: hasPreviews
+            ? shown * previewW + (shown - 1) * Kirigami.Units.smallSpacing + Kirigami.Units.largeSpacing * 2
+            : heading.implicitWidth + Kirigami.Units.largeSpacing * 2
+        implicitHeight: heading.implicitHeight + Kirigami.Units.largeSpacing * 2
+                        + (hasPreviews ? previewH + Kirigami.Units.smallSpacing : 0)
+
+        Column {
+            id: tipColumn
+            anchors.centerIn: parent
+            spacing: Kirigami.Units.smallSpacing
+
+            Kirigami.Heading {
+                id: heading
+                level: 5
+                text: tipRoot.task ? tipRoot.task.appName : ""
+                elide: Text.ElideRight
+                horizontalAlignment: Text.AlignHCenter
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+
+            Row {
+                id: previewRow
+                spacing: Kirigami.Units.smallSpacing
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: tipRoot.hasPreviews
+
+                Repeater {
+                    model: tipRoot.hasPreviews ? tipRoot.windows : []
+
+                    delegate: MouseArea {
+                        id: previewItem
+                        required property var modelData
+                        required property int index
+
+                        width: tipRoot.previewW
+                        height: tipRoot.previewH
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+
+                        onClicked: mouse => {
+                            // Una ventana suelta se direcciona por su fila; dentro de un
+                            // grupo hace falta el índice hijo.
+                            const t = tipRoot.task
+                            const idx = (t && t.isGroup)
+                                ? tasksModel.makeModelIndex(root.tipIndex, index)
+                                : tasksModel.makeModelIndex(root.tipIndex)
+
+                            // Rueda del medio sobre una miniatura: cierra sólo esa ventana
+                            // y deja el tooltip abierto con las demás.
+                            if (mouse.button === Qt.MiddleButton) {
+                                tasksModel.requestClose(idx)
+                                return
+                            }
+                            tasksModel.requestActivate(idx)
+                            root.hideTips()
+                        }
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: Kirigami.Units.cornerRadius
+                            color: Kirigami.Theme.textColor
+                            opacity: previewItem.containsMouse ? 0.14 : 0.06
+                            Behavior on opacity { NumberAnimation { duration: 120 } }
+                        }
+
+                        WindowPreview {
+                            anchors.fill: parent
+                            anchors.margins: Kirigami.Units.smallSpacing
+                            windowId: previewItem.modelData
+                            fallbackIcon: tipRoot.task ? tipRoot.task.iconSource : null
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // ---------- geometría del dock ----------
     // Centro de la celda i, sin magnificar. Todo se deriva de acá, así que el
     // layout es función pura del puntero: no hay realimentación ni temblor.
@@ -269,7 +375,7 @@ PlasmoidItem {
             }
 
             onClicked: mouse => {
-                taskTip.hideToolTip()
+                root.hideTips()
                 track(mouse)
                 const i = root.focusedIndex
                 if (i < 0) return
@@ -347,6 +453,19 @@ PlasmoidItem {
                     function bounce() {
                         if (Plasmoid.configuration.bounceOnLaunch) bounceAnim.restart()
                     }
+
+                    // Área de tooltip de este icono; el contenido es el compartido.
+                    PlasmaCore.ToolTipArea {
+                        id: itemTip
+                        anchors.fill: parent
+                        mainItem: root.tipContent
+                        location: Plasmoid.location
+                        interactive: true
+                        active: Plasmoid.configuration.showLabels && !dropArea.containsDrag
+                                && dockItem.appName !== ""
+                        onContainsMouseChanged: if (containsMouse) root.tipIndex = dockItem.index
+                    }
+                    function hideTip() { itemTip.hideToolTip() }
 
                     // ---- geometría para KWin ----
                     // KWin usa esta geometría como destino de la animación de minimizar
@@ -461,108 +580,6 @@ PlasmoidItem {
                 }
             }
 
-            PlasmaCore.ToolTipArea {
-                id: taskTip
-                anchors.fill: parent
-                active: Plasmoid.configuration.showLabels && !dropArea.containsDrag
-                        && task !== null && task.appName !== ""
-                interactive: true
-                location: Plasmoid.location
-
-                readonly property var task: {
-                    root.modelRevision  // dependencia explícita, ver modelRevision
-                    return root.tipIndex >= 0 ? repeater.itemAt(root.tipIndex) : null
-                }
-                readonly property var windows: task && !task.isLauncher ? task.winIds : []
-
-                mainItem: Item {
-                    id: tipRoot
-
-                    readonly property var task: taskTip.task
-                    readonly property var windows: taskTip.windows
-                    readonly property bool hasPreviews: Plasmoid.configuration.showPreviews && windows.length > 0
-                    readonly property real previewW: Kirigami.Units.gridUnit * 12
-                    readonly property real previewH: previewW * 0.6
-                    readonly property int shown: Math.min(windows.length, 4)
-
-                    implicitWidth: hasPreviews
-                        ? shown * previewW + (shown - 1) * Kirigami.Units.smallSpacing + Kirigami.Units.largeSpacing * 2
-                        : heading.implicitWidth + Kirigami.Units.largeSpacing * 2
-                    implicitHeight: heading.implicitHeight + Kirigami.Units.largeSpacing * 2
-                                    + (hasPreviews ? previewH + Kirigami.Units.smallSpacing : 0)
-
-                    Column {
-                        id: tipColumn
-                        anchors.centerIn: parent
-                        spacing: Kirigami.Units.smallSpacing
-
-                        Kirigami.Heading {
-                            id: heading
-                            level: 5
-                            text: tipRoot.task ? tipRoot.task.appName : ""
-                            elide: Text.ElideRight
-                            horizontalAlignment: Text.AlignHCenter
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
-
-                        Row {
-                            id: previewRow
-                            spacing: Kirigami.Units.smallSpacing
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            visible: tipRoot.hasPreviews
-
-                            Repeater {
-                                model: tipRoot.hasPreviews ? tipRoot.windows : []
-
-                                delegate: MouseArea {
-                                    id: previewItem
-                                    required property var modelData
-                                    required property int index
-
-                                    width: tipRoot.previewW
-                                    height: tipRoot.previewH
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    acceptedButtons: Qt.LeftButton | Qt.MiddleButton
-
-                                    onClicked: mouse => {
-                                        // Una ventana suelta se direcciona por su fila; dentro de un
-                                        // grupo hace falta el índice hijo.
-                                        const t = tipRoot.task
-                                        const idx = (t && t.isGroup)
-                                            ? tasksModel.makeModelIndex(root.tipIndex, index)
-                                            : tasksModel.makeModelIndex(root.tipIndex)
-
-                                        // Rueda del medio sobre una miniatura: cierra sólo esa ventana
-                                        // y deja el tooltip abierto con las demás.
-                                        if (mouse.button === Qt.MiddleButton) {
-                                            tasksModel.requestClose(idx)
-                                            return
-                                        }
-                                        tasksModel.requestActivate(idx)
-                                        taskTip.hideToolTip()
-                                    }
-
-                                    Rectangle {
-                                        anchors.fill: parent
-                                        radius: Kirigami.Units.cornerRadius
-                                        color: Kirigami.Theme.textColor
-                                        opacity: previewItem.containsMouse ? 0.14 : 0.06
-                                        Behavior on opacity { NumberAnimation { duration: 120 } }
-                                    }
-
-                                    WindowPreview {
-                                        anchors.fill: parent
-                                        anchors.margins: Kirigami.Units.smallSpacing
-                                        windowId: previewItem.modelData
-                                        fallbackIcon: tipRoot.task ? tipRoot.task.iconSource : null
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 
