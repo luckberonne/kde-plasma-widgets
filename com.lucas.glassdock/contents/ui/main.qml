@@ -49,6 +49,10 @@ PlasmoidItem {
     // El tooltip recuerda su tarea aunque el puntero ya haya salido del dock:
     // si no, se cerraría justo cuando vas a hacer clic en una miniatura.
     property int tipIndex: -1
+    // repeater.itemAt() no notifica cuando el Repeater recrea un delegate (pasa al
+    // abrir o activar una app). Este contador se incrementa con cada cambio del
+    // modelo y fuerza a volver a buscarlo, en vez de quedarse con uno destruido.
+    property int modelRevision: 0
 
     preferredRepresentation: fullRepresentation
 
@@ -99,6 +103,11 @@ PlasmoidItem {
         onLauncherListChanged: Plasmoid.configuration.launchers = launcherList
 
         onCountChanged: if (root.tipIndex >= count) root.tipIndex = -1
+        onDataChanged: root.modelRevision++
+        onRowsInserted: root.modelRevision++
+        onRowsRemoved: root.modelRevision++
+        onRowsMoved: root.modelRevision++
+        onModelReset: root.modelRevision++
     }
 
 
@@ -244,6 +253,7 @@ PlasmoidItem {
             }
 
             onClicked: mouse => {
+                taskTip.hideToolTip()
                 track(mouse)
                 const i = root.focusedIndex
                 if (i < 0) return
@@ -395,11 +405,15 @@ PlasmoidItem {
             PlasmaCore.ToolTipArea {
                 id: taskTip
                 anchors.fill: parent
-                active: Plasmoid.configuration.showLabels && root.tipIndex >= 0 && !dropArea.containsDrag
+                active: Plasmoid.configuration.showLabels && !dropArea.containsDrag
+                        && task !== null && task.appName !== ""
                 interactive: true
                 location: Plasmoid.location
 
-                readonly property var task: root.tipIndex >= 0 ? repeater.itemAt(root.tipIndex) : null
+                readonly property var task: {
+                    root.modelRevision  // dependencia explícita, ver modelRevision
+                    return root.tipIndex >= 0 ? repeater.itemAt(root.tipIndex) : null
+                }
                 readonly property var windows: task && !task.isLauncher ? task.winIds : []
 
                 mainItem: Item {
