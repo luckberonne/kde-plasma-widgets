@@ -671,6 +671,14 @@ PlasmoidItem {
             const target = root.dropIndex
             root.dropIndex = -1
             root.pointer = -1000
+
+            // Lanzador arrastrado desde el dock de otra pantalla: se fija acá.
+            if (drop.formats.indexOf("application/x-glassdock-launcher") >= 0) {
+                const url = drop.getDataAsString("application/x-glassdock-launcher")
+                if (url && tasksModel.requestAddLauncher(url)) drop.accept(Qt.MoveAction)
+                return
+            }
+
             if (!drop.hasUrls) return
 
             // Soltar en un espacio vacío del dock (sin ningún icono debajo) fija los
@@ -722,6 +730,19 @@ PlasmoidItem {
                     if (moved < Qt.styleHints.startDragDistance) return
                     reordering = true
                     root.hideTips()
+                }
+
+                // Si el lanzador se va fuera del propio dock, deja de ser un
+                // reordenamiento interno y pasa a ser un arrastre real del sistema,
+                // para poder soltarlo sobre el dock de otra pantalla.
+                const outside = mouse.x < 0 || mouse.x > root.width
+                              || mouse.y < 0 || mouse.y > root.height
+                const item = repeater.itemAt(root.reorderIndex)
+                if (outside && item && item.isLauncher) {
+                    reordering = false
+                    root.reorderIndex = -1
+                    item.startExternalDrag()
+                    return
                 }
 
                 const target = root.focusedIndex
@@ -813,6 +834,28 @@ PlasmoidItem {
                     readonly property var winIds: model.WinIdList !== undefined ? model.WinIdList : []
                     readonly property bool isGroup: model.IsGroupParent === true
                     readonly property var launcherUrl: model.LauncherUrlWithoutIcon
+
+                    // ---- arrastrar a otra pantalla ----
+                    // Sólo tiene sentido para lanzadores fijos: una ventana real no
+                    // "vive" en un dock, así que no hay nada que mover al otro lado.
+                    Drag.dragType: Drag.None
+                    Drag.supportedActions: Qt.MoveAction
+                    Drag.proposedAction: Qt.MoveAction
+                    Drag.keys: ["application/x-glassdock-launcher"]
+
+                    function startExternalDrag() {
+                        if (!isLauncher || !launcherUrl) return
+                        Drag.mimeData = { "application/x-glassdock-launcher": String(launcherUrl) }
+                        Drag.dragType = Drag.Automatic
+                        Drag.start()
+                    }
+
+                    // El dock destino acepta con Qt.MoveAction; si el que soltó ahí
+                    // confirma esa acción, el lanzador se quita de este dock.
+                    Drag.onDragFinished: dropAction => {
+                        Drag.dragType = Drag.None
+                        if (dropAction === Qt.MoveAction) tasksModel.requestRemoveLauncher(launcherUrl)
+                    }
                     readonly property string appName: model.AppName ? model.AppName : model.display
                     readonly property string title: model.display ? model.display : ""
                     readonly property var iconSource: model.decoration
