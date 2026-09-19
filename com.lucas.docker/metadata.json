@@ -1,0 +1,21 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Lucas"
+            }
+        ],
+        "Category": "System Information",
+        "Description": "Contenedores de Docker: estado, iniciar, detener, reiniciar y ver logs",
+        "Description[es]": "Contenedores de Docker: estado, iniciar, detener, reiniciar y ver logs",
+        "EnabledByDefault": true,
+        "Icon": "yast-docker",
+        "Id": "com.lucas.docker",
+        "License": "MIT",
+        "Name": "Docker Containers (Scenic)",
+        "Name[es]": "Contenedores Docker",
+        "Version": "1.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

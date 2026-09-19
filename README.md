@@ -89,6 +89,20 @@ Chat, traductor y corrector que usan tu propio modelo local vía la API compatib
 
 - Un `llama-server` corriendo, por ejemplo: `llama-server -m modelo.gguf --host 127.0.0.1 --port 8080`.
 
+## Contenedores Docker (`com.lucas.docker`)
+
+Bandeja de contenedores de Docker: estado de un vistazo y control básico sin abrir la terminal.
+
+- Icono de panel con un contador verde de contenedores en ejecución; representación completa con una tarjeta por contenedor (nombre, imagen, estado, puertos publicados).
+- Indicador de color: verde en ejecución, ámbar en pausa o `unhealthy`, gris detenido.
+- Botones para iniciar/detener, reiniciar y ver logs (últimas N líneas, con botón para copiarlos).
+- Configurable: intervalo de actualización, mostrar o no los detenidos y cantidad de líneas de log.
+- Si Docker no está disponible o tu usuario no tiene permisos, lo muestra en el widget.
+
+### Requisitos
+
+- `docker` en el `PATH` y tu usuario en el grupo `docker`.
+
 ## Instalación
 
 Copiá cada carpeta a tu directorio de plasmoids de usuario:
