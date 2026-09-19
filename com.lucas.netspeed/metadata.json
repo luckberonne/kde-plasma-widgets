@@ -1,0 +1,21 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Lucas"
+            }
+        ],
+        "Category": "System Information",
+        "Description": "Velocidad de subida y bajada de red en vivo con mini gráfico",
+        "Description[es]": "Velocidad de subida y bajada de red en vivo con mini gráfico",
+        "EnabledByDefault": true,
+        "Icon": "network-wireless",
+        "Id": "com.lucas.netspeed",
+        "License": "MIT",
+        "Name": "Network Speed (Scenic)",
+        "Name[es]": "Velocidad de Red",
+        "Version": "1.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

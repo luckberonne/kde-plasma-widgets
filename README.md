@@ -65,6 +65,15 @@ Botón mínimo para el panel que alterna su transparencia total.
 - El icono cambia entre ojo abierto/tachado según el estado, y el estado se guarda en la configuración del widget.
 - Sirve para cualquier panel, no requiere reemplazar el gestor de tareas por Dock de Vidrio.
 
+## Velocidad de Red (`com.lucas.netspeed`)
+
+Velocidad de bajada y subida en vivo, con mini gráfico de los últimos 60 muestreos.
+
+- Lee los contadores de `/proc/net/dev`; por defecto usa la interfaz de la ruta por defecto (`ip route`), o la que indiques (ej. `wlan0`).
+- Representación compacta para el panel (↓ y ↑ en dos líneas) y completa para el escritorio, con cambio automático por tamaño.
+- Unidades automáticas (B/s, KB/s, MB/s, GB/s) y tooltip con la interfaz en uso.
+- Configurable: interfaz, intervalo de actualización y mostrar/ocultar el gráfico.
+
 ## Instalación
 
 Copiá cada carpeta a tu directorio de plasmoids de usuario:
