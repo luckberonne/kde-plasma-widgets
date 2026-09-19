@@ -6,6 +6,7 @@ Kirigami.FormLayout {
     id: page
 
     property alias cfg_columns: colsSpin.value
+    property alias cfg_rows: rowsSpin.value
     property alias cfg_buttonSize: sizeSpin.value
     property alias cfg_showLabels: labelsCheck.checked
 
@@ -14,6 +15,13 @@ Kirigami.FormLayout {
         Kirigami.FormData.label: i18n("Columnas:")
         from: 1
         to: 10
+    }
+
+    QQC2.SpinBox {
+        id: rowsSpin
+        Kirigami.FormData.label: i18n("Filas:")
+        from: 1
+        to: 8
     }
 
     QQC2.SpinBox {

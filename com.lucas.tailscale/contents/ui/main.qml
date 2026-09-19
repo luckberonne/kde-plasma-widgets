@@ -15,6 +15,7 @@ PlasmoidItem {
     switchWidth: Kirigami.Units.gridUnit * 14
     switchHeight: Kirigami.Units.gridUnit * 10
 
+
     readonly property string statusCmd: "tailscale status --json 2>&1"
 
     // En un panel se muestra dentro del desplegable de Plasma (con su tema);

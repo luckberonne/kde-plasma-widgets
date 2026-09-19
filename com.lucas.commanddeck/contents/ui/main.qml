@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
-import Qt5Compat.GraphicalEffects
 import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasma5support as Plasma5Support
@@ -12,20 +11,19 @@ PlasmoidItem {
 
     Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground
 
-    switchWidth: Kirigami.Units.gridUnit * 10
-    switchHeight: Kirigami.Units.gridUnit * 8
+    // Umbrales bajos: en el escritorio siempre se ve la botonera completa; solo en un
+    // panel (donde el widget mide apenas un icono) se usa el icono con desplegable.
+    switchWidth: Kirigami.Units.gridUnit * 4
+    switchHeight: Kirigami.Units.gridUnit * 4
 
-    // En un panel se muestra dentro del desplegable de Plasma (con su tema);
-    // en el escritorio, con el estilo glass propio.
-    readonly property bool inPopup: Plasmoid.location !== PlasmaCore.Types.Floating
-    readonly property color fg: inPopup ? Kirigami.Theme.textColor : "white"
 
     readonly property var buttons: {
         try { return JSON.parse(Plasmoid.configuration.buttons) } catch (e) { return [] }
     }
     readonly property int columns: Math.max(1, Plasmoid.configuration.columns)
     readonly property int cell: Math.max(48, Plasmoid.configuration.buttonSize)
-    readonly property int rows: Math.max(1, Math.ceil(buttons.length / columns))
+    readonly property int rows: Math.max(Math.max(1, Plasmoid.configuration.rows), Math.ceil(buttons.length / columns))
+    readonly property int slots: columns * rows
 
     // Estado por botón: { status: "running" | "ok" | "fail", until: ms }
     property var states: ({})
@@ -139,92 +137,129 @@ PlasmoidItem {
     fullRepresentation: Item {
         id: view
 
-        readonly property int pad: Kirigami.Units.largeSpacing
-        readonly property int gap: Kirigami.Units.smallSpacing * 1.5
+        readonly property int bodyPad: Math.round(root.cell * 0.16)
+        readonly property int gap: Math.round(root.cell * 0.1)
         readonly property real gridW: root.columns * root.cell + (root.columns - 1) * gap
-        readonly property real footerH: Kirigami.Units.gridUnit * 2
         readonly property real gridH: root.rows * root.cell + (root.rows - 1) * gap
+        readonly property real footerH: Kirigami.Units.gridUnit * 1.8
 
-        Layout.minimumWidth: gridW + pad * 2
-        Layout.minimumHeight: gridH + pad * 2 + footerH
+        Layout.minimumWidth: gridW + bodyPad * 2
+        Layout.minimumHeight: gridH + bodyPad * 2 + footerH
         Layout.preferredWidth: Layout.minimumWidth
         Layout.preferredHeight: Layout.minimumHeight
 
+        // Carcasa del dispositivo
         Rectangle {
-            visible: !root.inPopup
+            id: body
             anchors.fill: parent
-            radius: Kirigami.Units.largeSpacing
-            color: "#66000000"
+            radius: root.cell * 0.28
+            gradient: Gradient {
+                GradientStop { position: 0; color: "#1b1b20" }
+                GradientStop { position: 1; color: "#0b0b0e" }
+            }
+            border.width: 1
             border.color: "#33ffffff"
         }
 
         Grid {
             id: grid
-            x: view.pad
-            y: view.pad
+            x: view.bodyPad
+            y: view.bodyPad
             columns: root.columns
             spacing: view.gap
 
             Repeater {
-                model: root.buttons
+                model: root.slots
 
                 delegate: Item {
                     id: btn
                     width: root.cell
                     height: root.cell
 
-                    readonly property var b: modelData
-                    readonly property color accent: b.color || "#38bdf8"
+                    readonly property var b: index < root.buttons.length ? root.buttons[index] : null
+                    readonly property bool empty: b === null
+                    readonly property color accent: b && b.color ? b.color : "#38bdf8"
                     readonly property var st: root.states[index]
                     readonly property string status: st ? st.status : ""
                     readonly property bool confirming: root.pendingConfirm === index
 
+                    // Tecla
                     Rectangle {
-                        id: face
+                        id: key
                         anchors.fill: parent
-                        radius: Kirigami.Units.largeSpacing
-                        scale: mouse.pressed ? 0.94 : 1
-                        Behavior on scale { NumberAnimation { duration: 90 } }
-                        color: Qt.rgba(accent.r, accent.g, accent.b, mouse.pressed ? 0.5 : mouse.containsMouse ? 0.36 : 0.22)
+                        radius: root.cell * 0.14
+                        scale: mouse.pressed && !btn.empty ? 0.93 : 1
+                        Behavior on scale { NumberAnimation { duration: 80 } }
+                        color: "#121216"
                         border.width: btn.status === "ok" || btn.status === "fail" || btn.confirming ? 3 : 1
                         border.color: btn.status === "ok" ? "#22c55e"
                                     : btn.status === "fail" ? "#ef4444"
                                     : btn.confirming ? "#f59e0b"
-                                    : Qt.rgba(accent.r, accent.g, accent.b, 0.65)
-                        Behavior on color { ColorAnimation { duration: 120 } }
+                                    : btn.empty ? "#1f1f25" : "#3a3a44"
+
+                        // Pantalla de la tecla: degradado con el color del botón
+                        Rectangle {
+                            visible: !btn.empty
+                            anchors.fill: parent
+                            anchors.margins: 2
+                            radius: parent.radius - 2
+                            gradient: Gradient {
+                                GradientStop { position: 0; color: Qt.rgba(btn.accent.r, btn.accent.g, btn.accent.b, mouse.containsMouse ? 0.62 : 0.5) }
+                                GradientStop { position: 1; color: Qt.rgba(btn.accent.r * 0.5, btn.accent.g * 0.5, btn.accent.b * 0.5, mouse.containsMouse ? 0.5 : 0.36) }
+                            }
+                        }
+
+                        // Brillo superior
+                        Rectangle {
+                            visible: !btn.empty
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            anchors.margins: 3
+                            height: parent.height * 0.42
+                            radius: parent.radius - 3
+                            gradient: Gradient {
+                                GradientStop { position: 0; color: "#22ffffff" }
+                                GradientStop { position: 1; color: "#00ffffff" }
+                            }
+                        }
+
+                        // Ranura vacía: "+" tenue
+                        Text {
+                            visible: btn.empty
+                            anchors.centerIn: parent
+                            text: "+"
+                            color: "#2a2a32"
+                            font.pixelSize: root.cell * 0.4
+                            opacity: mouse.containsMouse ? 1 : 0.6
+                        }
 
                         ColumnLayout {
+                            visible: !btn.empty
                             anchors.centerIn: parent
                             width: parent.width - Kirigami.Units.smallSpacing * 2
-                            spacing: Kirigami.Units.smallSpacing
+                            spacing: Math.round(root.cell * 0.04)
 
                             Kirigami.Icon {
                                 Layout.alignment: Qt.AlignHCenter
-                                Layout.preferredWidth: root.cell * (Plasmoid.configuration.showLabels ? 0.42 : 0.55)
+                                Layout.preferredWidth: root.cell * (Plasmoid.configuration.showLabels ? 0.44 : 0.58)
                                 Layout.preferredHeight: Layout.preferredWidth
                                 source: btn.status === "ok" ? "dialog-ok-apply"
                                       : btn.status === "fail" ? "dialog-error"
                                       : btn.confirming ? "dialog-question"
-                                      : (b.icon || "system-run")
-                                opacity: btn.status === "running" ? 0.35 : 1
+                                      : (btn.b && btn.b.icon ? btn.b.icon : "system-run")
+                                opacity: btn.status === "running" ? 0.3 : 1
                             }
 
                             Text {
                                 visible: Plasmoid.configuration.showLabels
                                 Layout.fillWidth: true
                                 horizontalAlignment: Text.AlignHCenter
-                                text: btn.confirming ? "¿Seguro?" : (b.name || "")
-                                color: root.fg
+                                text: btn.confirming ? "¿Seguro?" : (btn.b ? btn.b.name : "")
+                                color: "white"
                                 elide: Text.ElideRight
                                 font.pixelSize: Math.max(9, root.cell * 0.13)
                                 font.bold: true
-                                layer.enabled: !root.inPopup
-                                layer.effect: DropShadow {
-                                    verticalOffset: 1
-                                    radius: 4
-                                    samples: 9
-                                    color: "#aa000000"
-                                }
                             }
                         }
 
@@ -242,49 +277,40 @@ PlasmoidItem {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: root.press(index)
+                        onClicked: {
+                            if (btn.empty) Plasmoid.internalAction("configure").trigger()
+                            else root.press(index)
+                        }
                     }
 
-                    QQC2.ToolTip.visible: mouse.containsMouse && (b.cmd || "").length > 0
+                    QQC2.ToolTip.visible: mouse.containsMouse
                     QQC2.ToolTip.delay: 600
-                    QQC2.ToolTip.text: (b.name || "") + "\n" + (b.cmd || "")
+                    QQC2.ToolTip.text: btn.empty ? "Añadir un botón"
+                        : (btn.b.name || "") + ((btn.b.cmd || "").length ? "\n" + btn.b.cmd : "")
                 }
             }
         }
 
-        // Sin botones
-        Text {
-            visible: root.buttons.length === 0
-            anchors.centerIn: parent
-            width: parent.width * 0.8
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.Wrap
-            color: root.fg
-            opacity: 0.7
-            text: "No hay botones.\nAgregalos desde la configuración del widget."
-        }
-
-        // Pie: confirmación o resultado
+        // Pie: confirmación o resultado (siempre reserva su espacio)
         Item {
             id: footer
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             height: view.footerH
-            clip: true
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: view.pad
-                anchors.rightMargin: view.pad
-                anchors.bottomMargin: view.pad / 2
+                anchors.leftMargin: view.bodyPad
+                anchors.rightMargin: view.bodyPad
+                anchors.bottomMargin: view.bodyPad * 0.5
                 spacing: Kirigami.Units.smallSpacing
 
                 Text {
                     Layout.fillWidth: true
                     elide: Text.ElideRight
                     color: root.pendingConfirm >= 0 ? "#f59e0b"
-                         : root.messageIsError ? "#ef4444" : root.fg
+                         : root.messageIsError ? "#f87171" : "#cbd5e1"
                     font.pixelSize: Kirigami.Units.gridUnit * 0.7
                     text: root.pendingConfirm >= 0
                         ? "¿Ejecutar «" + (root.buttons[root.pendingConfirm] ? root.buttons[root.pendingConfirm].name : "") + "»?"

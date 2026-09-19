@@ -15,6 +15,7 @@ PlasmoidItem {
     switchWidth: Kirigami.Units.gridUnit * 14
     switchHeight: Kirigami.Units.gridUnit * 10
 
+
     readonly property string listCmd: "docker ps -a --format '{{json .}}' 2>&1"
 
     property var containers: []

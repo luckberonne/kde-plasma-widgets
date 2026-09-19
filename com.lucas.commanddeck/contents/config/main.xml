@@ -9,6 +9,9 @@
       <default>[{&quot;name&quot;:&quot;Bloquear&quot;,&quot;icon&quot;:&quot;system-lock-screen&quot;,&quot;color&quot;:&quot;#38bdf8&quot;,&quot;cmd&quot;:&quot;loginctl lock-session&quot;,&quot;app&quot;:false,&quot;terminal&quot;:false,&quot;confirm&quot;:false},{&quot;name&quot;:&quot;Captura&quot;,&quot;icon&quot;:&quot;spectacle&quot;,&quot;color&quot;:&quot;#c084fc&quot;,&quot;cmd&quot;:&quot;spectacle&quot;,&quot;app&quot;:true,&quot;terminal&quot;:false,&quot;confirm&quot;:false},{&quot;name&quot;:&quot;Terminal&quot;,&quot;icon&quot;:&quot;utilities-terminal&quot;,&quot;color&quot;:&quot;#22c55e&quot;,&quot;cmd&quot;:&quot;konsole&quot;,&quot;app&quot;:true,&quot;terminal&quot;:false,&quot;confirm&quot;:false},{&quot;name&quot;:&quot;Silenciar&quot;,&quot;icon&quot;:&quot;audio-volume-muted&quot;,&quot;color&quot;:&quot;#f59e0b&quot;,&quot;cmd&quot;:&quot;wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle&quot;,&quot;app&quot;:false,&quot;terminal&quot;:false,&quot;confirm&quot;:false},{&quot;name&quot;:&quot;Suspender&quot;,&quot;icon&quot;:&quot;system-suspend&quot;,&quot;color&quot;:&quot;#f97316&quot;,&quot;cmd&quot;:&quot;systemctl suspend&quot;,&quot;app&quot;:false,&quot;terminal&quot;:false,&quot;confirm&quot;:true},{&quot;name&quot;:&quot;Reiniciar Plasma&quot;,&quot;icon&quot;:&quot;view-refresh&quot;,&quot;color&quot;:&quot;#ef4444&quot;,&quot;cmd&quot;:&quot;plasmashell --replace&quot;,&quot;app&quot;:true,&quot;terminal&quot;:false,&quot;confirm&quot;:true}]</default>
     </entry>
     <entry name="columns" type="Int">
+      <default>5</default>
+    </entry>
+    <entry name="rows" type="Int">
       <default>3</default>
     </entry>
     <entry name="buttonSize" type="Int">

@@ -15,6 +15,7 @@ PlasmoidItem {
     switchWidth: Kirigami.Units.gridUnit * 14
     switchHeight: Kirigami.Units.gridUnit * 10
 
+
     // En un panel se muestra dentro del desplegable de Plasma (con su tema);
     // en el escritorio, con el estilo glass propio.
     readonly property bool inPopup: Plasmoid.location !== PlasmaCore.Types.Floating

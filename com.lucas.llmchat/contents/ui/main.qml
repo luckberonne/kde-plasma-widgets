@@ -14,6 +14,7 @@ PlasmoidItem {
     switchWidth: Kirigami.Units.gridUnit * 14
     switchHeight: Kirigami.Units.gridUnit * 14
 
+
     readonly property var modes: [
         { name: "Chat", hint: "Preguntale algo al modelo…", system: "" },
         { name: "Traducir", hint: "Texto a traducir (es ↔ en)…",
