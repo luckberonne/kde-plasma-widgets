@@ -1,0 +1,21 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Lucas"
+            }
+        ],
+        "Category": "Utilities",
+        "Description": "Botonera de comandos personalizables, al estilo Stream Deck",
+        "Description[es]": "Botonera de comandos personalizables, al estilo Stream Deck",
+        "EnabledByDefault": true,
+        "Icon": "input-gaming",
+        "Id": "com.lucas.commanddeck",
+        "License": "MIT",
+        "Name": "Command Deck (Scenic)",
+        "Name[es]": "Botonera de Comandos",
+        "Version": "1.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

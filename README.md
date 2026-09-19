@@ -136,6 +136,19 @@ Estado de tu red [Tailscale](https://tailscale.com) y de sus dispositivos, con c
 - `tailscale` y `tailscaled` funcionando.
 - Para que el interruptor funcione sin `sudo`, hay que configurar tu usuario como operador una sola vez: `sudo tailscale set --operator=$USER`. Si falta, el widget te muestra este comando.
 
+## Botonera de Comandos (`com.lucas.commanddeck`)
+
+Botonera de comandos personalizables, al estilo Stream Deck: un botón, un comando.
+
+- Cuadrícula de botones con icono, nombre y color propios; en un panel se ve como un icono con desplegable, y en el escritorio con estilo glass.
+- Editor en la configuración del widget: añadir, eliminar y reordenar botones, elegir el icono del tema de Plasma, el color y el comando.
+- Cada botón muestra su resultado: giro mientras corre, verde si terminó bien y rojo si falló (con la primera línea de la salida o el código de error en el pie).
+- Opciones por botón: aplicación (no espera a que termine, ideal para lanzar programas), abrir en una terminal Konsole que queda abierta, y pedir confirmación antes de ejecutar (para cosas como suspender).
+- Configurable: columnas, tamaño de los botones y mostrar u ocultar las etiquetas.
+- Viene con seis botones de ejemplo: bloquear, captura, terminal, silenciar, suspender y reiniciar Plasma.
+
+Los comandos se ejecutan con `sh -c` y tus permisos de usuario, así que sirven los mismos que en una terminal.
+
 ## Instalación
 
 Copiá cada carpeta a tu directorio de plasmoids de usuario:
