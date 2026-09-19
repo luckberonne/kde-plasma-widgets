@@ -23,6 +23,13 @@ PlasmoidItem {
     property string logsText: ""
     property var busyNames: ({})
 
+    // En un panel se muestra dentro del desplegable de Plasma (con su propio fondo y tema);
+    // en el escritorio, con el estilo glass propio.
+    readonly property bool inPopup: Plasmoid.location !== PlasmaCore.Types.Floating
+    readonly property color fg: inPopup ? Kirigami.Theme.textColor : "white"
+    readonly property color cardColor: inPopup ? Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.08) : "#26ffffff"
+    readonly property color logBg: inPopup ? Qt.rgba(0, 0, 0, 0.18) : "#66000000"
+
     readonly property int runningCount: containers.filter(c => c.state === "running").length
     readonly property var visible_: containers.filter(c => c.state === "running" || Plasmoid.configuration.showStopped)
 
@@ -113,9 +120,9 @@ PlasmoidItem {
     }
 
     component GlassText: Text {
-        color: "white"
+        color: root.fg
         elide: Text.ElideRight
-        layer.enabled: true
+        layer.enabled: !root.inPopup
         layer.effect: DropShadow {
             verticalOffset: 1
             radius: 5
@@ -125,8 +132,10 @@ PlasmoidItem {
     }
 
     compactRepresentation: Item {
-        Layout.minimumWidth: Kirigami.Units.iconSizes.medium
-        Layout.minimumHeight: Kirigami.Units.iconSizes.medium
+        Layout.minimumWidth: Kirigami.Units.iconSizes.small
+        Layout.minimumHeight: Kirigami.Units.iconSizes.small
+        Layout.preferredWidth: Kirigami.Units.iconSizes.medium
+        Layout.preferredHeight: Kirigami.Units.iconSizes.medium
 
         Kirigami.Icon {
             anchors.fill: parent
@@ -169,6 +178,7 @@ PlasmoidItem {
         TextEdit { id: clip; visible: false }
 
         Rectangle {
+            visible: !root.inPopup
             anchors.fill: parent
             radius: Kirigami.Units.largeSpacing
             color: "#66000000"
@@ -247,7 +257,7 @@ PlasmoidItem {
                     width: list.width - Kirigami.Units.largeSpacing
                     height: cardRow.implicitHeight + Kirigami.Units.largeSpacing * 2
                     radius: Kirigami.Units.mediumSpacing
-                    color: "#26ffffff"
+                    color: root.cardColor
 
                     readonly property var c: modelData
                     readonly property bool running: c.state === "running"
@@ -287,7 +297,7 @@ PlasmoidItem {
                                 Layout.fillWidth: true
                                 visible: c.ports.length > 0
                                 text: c.ports
-                                color: "#7dd3fc"
+                                color: root.inPopup ? Kirigami.Theme.highlightColor : "#7dd3fc"
                                 font.pixelSize: Kirigami.Units.gridUnit * 0.7
                             }
                         }
@@ -341,8 +351,8 @@ PlasmoidItem {
                     wrapMode: TextEdit.WrapAnywhere
                     font.family: "monospace"
                     font.pixelSize: Kirigami.Units.gridUnit * 0.7
-                    color: "white"
-                    background: Rectangle { color: "#66000000"; radius: Kirigami.Units.mediumSpacing }
+                    color: root.fg
+                    background: Rectangle { color: root.logBg; radius: Kirigami.Units.mediumSpacing }
                     onTextChanged: cursorPosition = length
                 }
             }

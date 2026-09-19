@@ -93,7 +93,7 @@ Chat, traductor y corrector que usan tu propio modelo local vía la API compatib
 
 Bandeja de contenedores de Docker: estado de un vistazo y control básico sin abrir la terminal.
 
-- Icono de panel con un contador verde de contenedores en ejecución; representación completa con una tarjeta por contenedor (nombre, imagen, estado, puertos publicados).
+- En un panel se ve como un icono con un contador verde de contenedores en ejecución y, al hacer clic, se despliega la lista (con el tema de Plasma). En el escritorio se muestra directamente con estilo glass. Una tarjeta por contenedor (nombre, imagen, estado, puertos publicados).
 - Indicador de color: verde en ejecución, ámbar en pausa o `unhealthy`, gris detenido.
 - Botones para iniciar/detener, reiniciar y ver logs (últimas N líneas, con botón para copiarlos).
 - Configurable: intervalo de actualización, mostrar o no los detenidos y cantidad de líneas de log.
