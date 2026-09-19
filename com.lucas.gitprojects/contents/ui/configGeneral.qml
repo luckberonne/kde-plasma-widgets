@@ -8,6 +8,7 @@ Kirigami.FormLayout {
     property alias cfg_rootPath: rootField.text
     property alias cfg_searchDepth: depthSpin.value
     property alias cfg_editorCommand: editorField.text
+    property alias cfg_claudeCommand: claudeField.text
     property alias cfg_updateInterval: intervalSpin.value
     property alias cfg_onlyAttention: attentionCheck.checked
 
@@ -28,7 +29,14 @@ Kirigami.FormLayout {
     QQC2.TextField {
         id: editorField
         Kirigami.FormData.label: i18n("Comando del editor:")
-        placeholderText: "code"
+        placeholderText: "code-oss"
+        implicitWidth: Kirigami.Units.gridUnit * 16
+    }
+
+    QQC2.TextField {
+        id: claudeField
+        Kirigami.FormData.label: i18n("Comando de Claude Code:")
+        placeholderText: "claude"
         implicitWidth: Kirigami.Units.gridUnit * 16
     }
 

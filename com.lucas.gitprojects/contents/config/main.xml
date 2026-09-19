@@ -12,7 +12,10 @@
       <default>3</default>
     </entry>
     <entry name="editorCommand" type="String">
-      <default>code</default>
+      <default>code-oss</default>
+    </entry>
+    <entry name="claudeCommand" type="String">
+      <default>claude</default>
     </entry>
     <entry name="updateInterval" type="Int">
       <default>15000</default>

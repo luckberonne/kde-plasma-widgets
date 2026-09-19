@@ -166,18 +166,22 @@ Batería, consumo en vatios y perfil de energía con un clic.
 
 ## Proyectos Git (`com.lucas.gitprojects`)
 
-Estado de tus repositorios Git de un vistazo, sin abrir la terminal.
+Estado de tus repositorios Git de un vistazo, con acceso directo a code-oss y a Claude Code (incluido su historial).
 
 - Busca los repositorios dentro de una carpeta (por defecto `~/Proyectos`, con profundidad configurable) y muestra para cada uno la rama, los cambios sin commitear, los commits sin pushear (↑) o por traer (↓), si no tiene remoto, y cuándo y con qué mensaje fue el último commit.
 - Los repos con novedades aparecen primero; el resto, ordenados por el commit más reciente. Un punto de color indica el estado: verde al día, ámbar con cambios, celeste con commits por pushear.
-- Botones por proyecto: abrir una terminal (Konsole) en esa carpeta, abrirlo en el editor (por defecto `code`), abrir la carpeta y copiar la ruta.
+- **code-oss:** botón para abrir el proyecto en el editor (configurable, por defecto `code-oss`) y, debajo de cada repo, cuándo lo abriste por última vez en code-oss (se lee del almacenamiento de workspaces del editor).
+- **Claude Code:** botón para abrir una nueva sesión en una terminal (Konsole con fish) ya ubicada en la carpeta del proyecto. Junto a cada repo se ve cuántas sesiones hay y cuándo fue la última.
+- **Historial de Claude Code:** al abrirlo, lista las últimas sesiones del proyecto (título tomado del primer mensaje y fecha), con botones para reanudar una sesión (`claude --resume`), continuar la última (`claude --continue`) o empezar una nueva. Al salir de Claude la terminal queda abierta en fish.
+- Otros botones: abrir una terminal en esa carpeta, abrir la carpeta y copiar la ruta.
 - En un panel se ve como un icono con un contador de repos con novedades y un desplegable con el tema de Plasma; en el escritorio, con estilo glass.
-- Configurable: carpeta raíz, profundidad de búsqueda, comando del editor, intervalo de actualización y mostrar solo los repos con novedades.
-- Solo consulta el estado local: no hace `git fetch`, así que «por traer» refleja lo último que ya descargaste.
+- Configurable: carpeta raíz, profundidad de búsqueda, comando del editor, comando de Claude Code, intervalo de actualización y mostrar solo los repos con novedades.
+- Solo consulta el estado local: no hace `git fetch`, así que «por traer» refleja lo último que ya descargaste. El historial de Claude se lee de `~/.claude/projects` y no sale de tu equipo.
 
 ### Requisitos
 
-- `git`; Konsole para el botón de terminal (opcional) y tu editor para el botón de editor.
+- `git`, Konsole, `fish` y `python3` (para leer los títulos de las sesiones).
+- `code-oss` y `claude` en el `PATH` (opcionales: sin ellos solo fallan sus botones).
 
 ## Instalación
 

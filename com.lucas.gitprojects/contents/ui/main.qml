@@ -27,6 +27,9 @@ PlasmoidItem {
     property string error: ""
     property string notice: ""
     property real nowMs: Date.now()
+    property var expandedRepos: ({})     // ruta -> true si su historial de Claude está abierto
+    property var histories: ({})         // ruta -> [{ id, ts, title }]
+    property var historyRequests: ({})   // comando -> ruta
 
     function needsAttention(r) { return r.changes > 0 || r.ahead > 0 }
 
@@ -43,6 +46,7 @@ PlasmoidItem {
         return s
     }
     readonly property string scriptPath: localPath(Qt.resolvedUrl("../code/repos.sh"))
+    readonly property string historyScript: localPath(Qt.resolvedUrl("../code/history.sh"))
 
     function shq(s) { return "'" + String(s).replace(/'/g, "'\\''") + "'" }
 
@@ -65,11 +69,12 @@ PlasmoidItem {
         out.split("\n").forEach(function (line) {
             var f = line.split("\t")
             if (f[0] === "ERROR") { err = f[1] || "Error"; return }
-            if (f[0] !== "REPO" || f.length < 10) return
+            if (f[0] !== "REPO" || f.length < 13) return
             list.push({
                 name: f[1], path: f[2], branch: f[3], changes: parseInt(f[4]) || 0,
                 ahead: parseInt(f[5]) || 0, behind: parseInt(f[6]) || 0, hasUpstream: f[7] === "1",
-                ts: parseInt(f[8]) || 0, subject: f.slice(9).join(" ")
+                ossTs: parseInt(f[8]) || 0, claudeCount: parseInt(f[9]) || 0, claudeTs: parseInt(f[10]) || 0,
+                ts: parseInt(f[11]) || 0, subject: f.slice(12).join(" ")
             })
         })
         list.sort(function (a, b) {
@@ -87,13 +92,47 @@ PlasmoidItem {
         connectedSources: []
         onNewData: (sourceName, data) => {
             disconnectSource(sourceName)
-            if (sourceName.indexOf("repos.sh") >= 0)
-                root.parse(data["stdout"] ? data["stdout"].toString() : "")
+            var out = data["stdout"] ? data["stdout"].toString() : ""
+            if (sourceName.indexOf("repos.sh") >= 0) {
+                root.parse(out)
+            } else if (root.historyRequests[sourceName] !== undefined) {
+                root.parseHistory(root.historyRequests[sourceName], out)
+                var req = Object.assign({}, root.historyRequests)
+                delete req[sourceName]
+                root.historyRequests = req
+            }
         }
     }
 
     function refresh() {
         exec.connectSource("sh " + shq(root.scriptPath) + " " + shq(Plasmoid.configuration.rootPath) + " " + Plasmoid.configuration.searchDepth)
+    }
+
+    function parseHistory(path, out) {
+        var list = []
+        out.split("\n").forEach(function (line) {
+            var f = line.split("\t")
+            if (f[0] !== "SESSION" || f.length < 4) return
+            list.push({ id: f[1], ts: parseInt(f[2]) || 0, title: f.slice(3).join(" ") })
+        })
+        var h = Object.assign({}, root.histories)
+        h[path] = list
+        root.histories = h
+    }
+
+    function loadHistory(path) {
+        var cmd = "sh " + shq(root.historyScript) + " " + shq(path) + " 12"
+        var req = Object.assign({}, root.historyRequests)
+        req[cmd] = path
+        root.historyRequests = req
+        exec.connectSource(cmd)
+    }
+
+    function toggleHistory(path) {
+        var e = Object.assign({}, root.expandedRepos)
+        if (e[path]) delete e[path]
+        else { e[path] = true; loadHistory(path) }
+        root.expandedRepos = e
     }
 
     function launch(cmd) {
@@ -102,7 +141,14 @@ PlasmoidItem {
     }
 
     function openTerminal(path) { launch("konsole --workdir " + shq(path)) }
-    function openEditor(path) { launch((Plasmoid.configuration.editorCommand || "code") + " " + shq(path)) }
+    function openEditor(path) { launch((Plasmoid.configuration.editorCommand || "code-oss") + " " + shq(path)) }
+
+    // Terminal (Konsole con fish) en la carpeta del proyecto, corriendo Claude Code.
+    // "fish -C" ejecuta el comando al iniciar y deja la shell abierta al salir de Claude.
+    function openClaude(path, args) {
+        var cmd = (Plasmoid.configuration.claudeCommand || "claude") + (args ? " " + args : "")
+        launch("konsole --workdir " + shq(path) + " -e fish -C " + shq(cmd))
+    }
     function openFolder(path) { launch("xdg-open " + shq(path)) }
 
     function copyPath(path) {
@@ -236,114 +282,210 @@ PlasmoidItem {
                 delegate: Rectangle {
                     id: card
                     width: list.width - Kirigami.Units.largeSpacing
-                    height: cardRow.implicitHeight + Kirigami.Units.largeSpacing * 2
+                    height: cardCol.implicitHeight + Kirigami.Units.largeSpacing * 2
                     radius: Kirigami.Units.mediumSpacing
                     color: root.cardColor
 
                     readonly property var r: modelData
                     readonly property color dot: r.changes > 0 ? "#f59e0b" : r.ahead > 0 ? "#38bdf8" : "#22c55e"
+                    readonly property bool open: !!root.expandedRepos[r.path]
+                    readonly property var sessions: root.histories[r.path] || []
 
-                    RowLayout {
-                        id: cardRow
-                        anchors.fill: parent
+                    ColumnLayout {
+                        id: cardCol
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
                         anchors.margins: Kirigami.Units.largeSpacing
-                        spacing: Kirigami.Units.largeSpacing
+                        spacing: Kirigami.Units.smallSpacing
 
-                        Rectangle {
-                            Layout.preferredWidth: 10
-                            Layout.preferredHeight: 10
-                            radius: 5
-                            color: card.dot
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Kirigami.Units.largeSpacing
+
+                            Rectangle {
+                                Layout.preferredWidth: 10
+                                Layout.preferredHeight: 10
+                                radius: 5
+                                color: card.dot
+                            }
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 0
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: Kirigami.Units.smallSpacing
+                                    GlassText {
+                                        text: r.name
+                                        font.bold: true
+                                    }
+                                    Rectangle {
+                                        Layout.preferredWidth: branchText.implicitWidth + 10
+                                        Layout.preferredHeight: branchText.implicitHeight + 2
+                                        radius: 4
+                                        color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.14)
+                                        Text {
+                                            id: branchText
+                                            anchors.centerIn: parent
+                                            width: Math.min(implicitWidth, Kirigami.Units.gridUnit * 9)
+                                            text: r.branch
+                                            color: root.fg
+                                            elide: Text.ElideRight
+                                            font.pixelSize: Kirigami.Units.gridUnit * 0.65
+                                        }
+                                    }
+                                    GlassText {
+                                        visible: r.changes > 0
+                                        text: "● " + r.changes + (r.changes === 1 ? " cambio" : " cambios")
+                                        color: "#f59e0b"
+                                        font.pixelSize: Kirigami.Units.gridUnit * 0.7
+                                    }
+                                    GlassText {
+                                        visible: r.ahead > 0
+                                        text: "↑" + r.ahead
+                                        color: root.accentColor
+                                        font.bold: true
+                                        font.pixelSize: Kirigami.Units.gridUnit * 0.75
+                                    }
+                                    GlassText {
+                                        visible: r.behind > 0
+                                        text: "↓" + r.behind
+                                        color: "#f87171"
+                                        font.bold: true
+                                        font.pixelSize: Kirigami.Units.gridUnit * 0.75
+                                    }
+                                    GlassText {
+                                        visible: !r.hasUpstream
+                                        text: "sin remoto"
+                                        opacity: 0.55
+                                        font.pixelSize: Kirigami.Units.gridUnit * 0.65
+                                    }
+                                    Item { Layout.fillWidth: true }
+                                }
+
+                                GlassText {
+                                    Layout.fillWidth: true
+                                    text: root.ago(r.ts) + " · " + r.subject
+                                    opacity: 0.65
+                                    font.pixelSize: Kirigami.Units.gridUnit * 0.7
+                                }
+
+                                GlassText {
+                                    Layout.fillWidth: true
+                                    visible: r.ossTs > 0 || r.claudeCount > 0
+                                    text: (r.ossTs > 0 ? "code-oss " + root.ago(r.ossTs) : "") +
+                                          (r.ossTs > 0 && r.claudeCount > 0 ? "  ·  " : "") +
+                                          (r.claudeCount > 0 ? "Claude: " + r.claudeCount + (r.claudeCount === 1 ? " sesión" : " sesiones") + ", última " + root.ago(r.claudeTs) : "")
+                                    color: root.accentColor
+                                    opacity: 0.85
+                                    font.pixelSize: Kirigami.Units.gridUnit * 0.65
+                                }
+                            }
+
+                            RowLayout {
+                                spacing: 0
+                                QQC2.ToolButton {
+                                    icon.name: "utilities-terminal"
+                                    onClicked: root.openTerminal(r.path)
+                                    QQC2.ToolTip.text: "Abrir terminal aquí (fish)"
+                                    QQC2.ToolTip.visible: hovered
+                                }
+                                QQC2.ToolButton {
+                                    icon.name: "document-edit"
+                                    onClicked: root.openEditor(r.path)
+                                    QQC2.ToolTip.text: "Abrir en code-oss"
+                                    QQC2.ToolTip.visible: hovered
+                                }
+                                QQC2.ToolButton {
+                                    icon.name: "im-user-online"
+                                    onClicked: root.openClaude(r.path, "")
+                                    QQC2.ToolTip.text: "Nueva sesión de Claude Code aquí"
+                                    QQC2.ToolTip.visible: hovered
+                                }
+                                QQC2.ToolButton {
+                                    icon.name: "view-history"
+                                    checkable: true
+                                    checked: card.open
+                                    onClicked: root.toggleHistory(r.path)
+                                    QQC2.ToolTip.text: "Historial de Claude Code"
+                                    QQC2.ToolTip.visible: hovered
+                                }
+                                QQC2.ToolButton {
+                                    icon.name: "folder-open"
+                                    onClicked: root.openFolder(r.path)
+                                    QQC2.ToolTip.text: "Abrir la carpeta"
+                                    QQC2.ToolTip.visible: hovered
+                                }
+                                QQC2.ToolButton {
+                                    icon.name: "edit-copy"
+                                    onClicked: root.copyPath(r.path)
+                                    QQC2.ToolTip.text: "Copiar la ruta"
+                                    QQC2.ToolTip.visible: hovered
+                                }
+                            }
                         }
 
+                        // Historial de Claude Code de este proyecto
                         ColumnLayout {
                             Layout.fillWidth: true
-                            spacing: 0
+                            visible: card.open
+                            spacing: Kirigami.Units.smallSpacing
 
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: Kirigami.Units.smallSpacing
-                                GlassText {
-                                    text: r.name
-                                    font.bold: true
+                                QQC2.Button {
+                                    icon.name: "list-add"
+                                    text: "Nueva sesión"
+                                    onClicked: root.openClaude(r.path, "")
                                 }
-                                Rectangle {
-                                    Layout.preferredWidth: branchText.implicitWidth + 10
-                                    Layout.preferredHeight: branchText.implicitHeight + 2
-                                    radius: 4
-                                    color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.14)
-                                    Text {
-                                        id: branchText
-                                        anchors.centerIn: parent
-                                        width: Math.min(implicitWidth, Kirigami.Units.gridUnit * 9)
-                                        text: r.branch
-                                        color: root.fg
-                                        elide: Text.ElideRight
-                                        font.pixelSize: Kirigami.Units.gridUnit * 0.65
-                                    }
-                                }
-                                GlassText {
-                                    visible: r.changes > 0
-                                    text: "● " + r.changes + (r.changes === 1 ? " cambio" : " cambios")
-                                    color: "#f59e0b"
-                                    font.pixelSize: Kirigami.Units.gridUnit * 0.7
-                                }
-                                GlassText {
-                                    visible: r.ahead > 0
-                                    text: "↑" + r.ahead
-                                    color: root.accentColor
-                                    font.bold: true
-                                    font.pixelSize: Kirigami.Units.gridUnit * 0.75
-                                }
-                                GlassText {
-                                    visible: r.behind > 0
-                                    text: "↓" + r.behind
-                                    color: "#f87171"
-                                    font.bold: true
-                                    font.pixelSize: Kirigami.Units.gridUnit * 0.75
-                                }
-                                GlassText {
-                                    visible: !r.hasUpstream
-                                    text: "sin remoto"
-                                    opacity: 0.55
-                                    font.pixelSize: Kirigami.Units.gridUnit * 0.65
+                                QQC2.Button {
+                                    icon.name: "media-seek-forward"
+                                    text: "Continuar la última"
+                                    enabled: r.claudeCount > 0
+                                    onClicked: root.openClaude(r.path, "--continue")
                                 }
                                 Item { Layout.fillWidth: true }
                             }
 
                             GlassText {
                                 Layout.fillWidth: true
-                                text: root.ago(r.ts) + " · " + r.subject
-                                opacity: 0.65
+                                visible: card.sessions.length === 0
+                                text: r.claudeCount > 0 ? "Cargando…" : "Todavía no hay sesiones de Claude Code en este proyecto."
+                                opacity: 0.6
                                 font.pixelSize: Kirigami.Units.gridUnit * 0.7
                             }
-                        }
 
-                        RowLayout {
-                            spacing: 0
-                            QQC2.ToolButton {
-                                icon.name: "utilities-terminal"
-                                onClicked: root.openTerminal(r.path)
-                                QQC2.ToolTip.text: "Abrir terminal aquí"
-                                QQC2.ToolTip.visible: hovered
-                            }
-                            QQC2.ToolButton {
-                                icon.name: "document-edit"
-                                onClicked: root.openEditor(r.path)
-                                QQC2.ToolTip.text: "Abrir en el editor"
-                                QQC2.ToolTip.visible: hovered
-                            }
-                            QQC2.ToolButton {
-                                icon.name: "folder-open"
-                                onClicked: root.openFolder(r.path)
-                                QQC2.ToolTip.text: "Abrir la carpeta"
-                                QQC2.ToolTip.visible: hovered
-                            }
-                            QQC2.ToolButton {
-                                icon.name: "edit-copy"
-                                onClicked: root.copyPath(r.path)
-                                QQC2.ToolTip.text: "Copiar la ruta"
-                                QQC2.ToolTip.visible: hovered
+                            Repeater {
+                                model: card.sessions
+                                delegate: RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: Kirigami.Units.smallSpacing
+
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 0
+                                        GlassText {
+                                            Layout.fillWidth: true
+                                            text: modelData.title
+                                            font.pixelSize: Kirigami.Units.gridUnit * 0.75
+                                        }
+                                        GlassText {
+                                            Layout.fillWidth: true
+                                            text: root.ago(modelData.ts)
+                                            opacity: 0.55
+                                            font.pixelSize: Kirigami.Units.gridUnit * 0.62
+                                        }
+                                    }
+                                    QQC2.ToolButton {
+                                        icon.name: "media-playback-start"
+                                        onClicked: root.openClaude(r.path, "--resume " + modelData.id)
+                                        QQC2.ToolTip.text: "Reanudar esta sesión"
+                                        QQC2.ToolTip.visible: hovered
+                                    }
+                                }
                             }
                         }
                     }
