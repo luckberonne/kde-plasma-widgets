@@ -1,0 +1,21 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Lucas"
+            }
+        ],
+        "Category": "Development",
+        "Description": "Estado de tus repositorios Git: rama, cambios sin commitear y commits sin pushear",
+        "Description[es]": "Estado de tus repositorios Git: rama, cambios sin commitear y commits sin pushear",
+        "EnabledByDefault": true,
+        "Icon": "vcs-branch",
+        "Id": "com.lucas.gitprojects",
+        "License": "MIT",
+        "Name": "Git Projects (Scenic)",
+        "Name[es]": "Proyectos Git",
+        "Version": "1.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

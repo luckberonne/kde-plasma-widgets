@@ -164,6 +164,21 @@ Batería, consumo en vatios y perfil de energía con un clic.
 - `power-profiles-daemon` (comando `powerprofilesctl`) para los perfiles.
 - Una batería visible en `/sys/class/power_supply` (en una PC de escritorio el widget solo muestra los perfiles).
 
+## Proyectos Git (`com.lucas.gitprojects`)
+
+Estado de tus repositorios Git de un vistazo, sin abrir la terminal.
+
+- Busca los repositorios dentro de una carpeta (por defecto `~/Proyectos`, con profundidad configurable) y muestra para cada uno la rama, los cambios sin commitear, los commits sin pushear (↑) o por traer (↓), si no tiene remoto, y cuándo y con qué mensaje fue el último commit.
+- Los repos con novedades aparecen primero; el resto, ordenados por el commit más reciente. Un punto de color indica el estado: verde al día, ámbar con cambios, celeste con commits por pushear.
+- Botones por proyecto: abrir una terminal (Konsole) en esa carpeta, abrirlo en el editor (por defecto `code`), abrir la carpeta y copiar la ruta.
+- En un panel se ve como un icono con un contador de repos con novedades y un desplegable con el tema de Plasma; en el escritorio, con estilo glass.
+- Configurable: carpeta raíz, profundidad de búsqueda, comando del editor, intervalo de actualización y mostrar solo los repos con novedades.
+- Solo consulta el estado local: no hace `git fetch`, así que «por traer» refleja lo último que ya descargaste.
+
+### Requisitos
+
+- `git`; Konsole para el botón de terminal (opcional) y tu editor para el botón de editor.
+
 ## Instalación
 
 Copiá cada carpeta a tu directorio de plasmoids de usuario:
