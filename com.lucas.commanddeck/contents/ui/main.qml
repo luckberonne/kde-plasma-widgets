@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
+import Qt5Compat.GraphicalEffects
 import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasma5support as Plasma5Support
@@ -137,7 +138,7 @@ PlasmoidItem {
     fullRepresentation: Item {
         id: view
 
-        readonly property int bodyPad: Math.round(root.cell * 0.16)
+        readonly property int bodyPad: Math.round(root.cell * 0.08)
         readonly property int gap: Math.round(root.cell * 0.1)
         readonly property real gridW: root.columns * root.cell + (root.columns - 1) * gap
         readonly property real gridH: root.rows * root.cell + (root.rows - 1) * gap
@@ -147,19 +148,6 @@ PlasmoidItem {
         Layout.minimumHeight: gridH + bodyPad * 2 + footerH
         Layout.preferredWidth: Layout.minimumWidth
         Layout.preferredHeight: Layout.minimumHeight
-
-        // Carcasa del dispositivo
-        Rectangle {
-            id: body
-            anchors.fill: parent
-            radius: root.cell * 0.28
-            gradient: Gradient {
-                GradientStop { position: 0; color: "#1b1b20" }
-                GradientStop { position: 1; color: "#0b0b0e" }
-            }
-            border.width: 1
-            border.color: "#33ffffff"
-        }
 
         Grid {
             id: grid
@@ -183,29 +171,30 @@ PlasmoidItem {
                     readonly property string status: st ? st.status : ""
                     readonly property bool confirming: root.pendingConfirm === index
 
-                    // Tecla
+                    // Tecla de vidrio translúcido
                     Rectangle {
                         id: key
                         anchors.fill: parent
-                        radius: root.cell * 0.14
+                        radius: root.cell * 0.2
                         scale: mouse.pressed && !btn.empty ? 0.93 : 1
                         Behavior on scale { NumberAnimation { duration: 80 } }
-                        color: "#121216"
+                        color: btn.empty ? (mouse.containsMouse ? "#22ffffff" : "#0fffffff") : "#1affffff"
                         border.width: btn.status === "ok" || btn.status === "fail" || btn.confirming ? 3 : 1
                         border.color: btn.status === "ok" ? "#22c55e"
                                     : btn.status === "fail" ? "#ef4444"
                                     : btn.confirming ? "#f59e0b"
-                                    : btn.empty ? "#1f1f25" : "#3a3a44"
+                                    : btn.empty ? "#22ffffff"
+                                    : Qt.rgba(btn.accent.r, btn.accent.g, btn.accent.b, 0.7)
+                        Behavior on color { ColorAnimation { duration: 120 } }
 
-                        // Pantalla de la tecla: degradado con el color del botón
+                        // Tinte del color del botón
                         Rectangle {
                             visible: !btn.empty
                             anchors.fill: parent
-                            anchors.margins: 2
-                            radius: parent.radius - 2
+                            radius: parent.radius
                             gradient: Gradient {
-                                GradientStop { position: 0; color: Qt.rgba(btn.accent.r, btn.accent.g, btn.accent.b, mouse.containsMouse ? 0.62 : 0.5) }
-                                GradientStop { position: 1; color: Qt.rgba(btn.accent.r * 0.5, btn.accent.g * 0.5, btn.accent.b * 0.5, mouse.containsMouse ? 0.5 : 0.36) }
+                                GradientStop { position: 0; color: Qt.rgba(btn.accent.r, btn.accent.g, btn.accent.b, mouse.containsMouse ? 0.5 : 0.36) }
+                                GradientStop { position: 1; color: Qt.rgba(btn.accent.r, btn.accent.g, btn.accent.b, mouse.containsMouse ? 0.3 : 0.16) }
                             }
                         }
 
@@ -215,11 +204,11 @@ PlasmoidItem {
                             anchors.left: parent.left
                             anchors.right: parent.right
                             anchors.top: parent.top
-                            anchors.margins: 3
-                            height: parent.height * 0.42
-                            radius: parent.radius - 3
+                            anchors.margins: 2
+                            height: parent.height * 0.4
+                            radius: parent.radius - 2
                             gradient: Gradient {
-                                GradientStop { position: 0; color: "#22ffffff" }
+                                GradientStop { position: 0; color: "#26ffffff" }
                                 GradientStop { position: 1; color: "#00ffffff" }
                             }
                         }
@@ -229,9 +218,9 @@ PlasmoidItem {
                             visible: btn.empty
                             anchors.centerIn: parent
                             text: "+"
-                            color: "#2a2a32"
+                            color: "white"
                             font.pixelSize: root.cell * 0.4
-                            opacity: mouse.containsMouse ? 1 : 0.6
+                            opacity: mouse.containsMouse ? 0.7 : 0.25
                         }
 
                         ColumnLayout {
@@ -260,6 +249,13 @@ PlasmoidItem {
                                 elide: Text.ElideRight
                                 font.pixelSize: Math.max(9, root.cell * 0.13)
                                 font.bold: true
+                                layer.enabled: true
+                                layer.effect: DropShadow {
+                                    verticalOffset: 1
+                                    radius: 4
+                                    samples: 9
+                                    color: "#aa000000"
+                                }
                             }
                         }
 
@@ -309,9 +305,16 @@ PlasmoidItem {
                 Text {
                     Layout.fillWidth: true
                     elide: Text.ElideRight
-                    color: root.pendingConfirm >= 0 ? "#f59e0b"
-                         : root.messageIsError ? "#f87171" : "#cbd5e1"
+                    color: root.pendingConfirm >= 0 ? "#fbbf24"
+                         : root.messageIsError ? "#fca5a5" : "white"
                     font.pixelSize: Kirigami.Units.gridUnit * 0.7
+                    layer.enabled: true
+                    layer.effect: DropShadow {
+                        verticalOffset: 1
+                        radius: 4
+                        samples: 9
+                        color: "#cc000000"
+                    }
                     text: root.pendingConfirm >= 0
                         ? "¿Ejecutar «" + (root.buttons[root.pendingConfirm] ? root.buttons[root.pendingConfirm].name : "") + "»?"
                         : root.message

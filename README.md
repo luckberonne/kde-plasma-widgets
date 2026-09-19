@@ -140,7 +140,7 @@ Estado de tu red [Tailscale](https://tailscale.com) y de sus dispositivos, con c
 
 Botonera de comandos personalizables, al estilo Stream Deck: un botón, un comando.
 
-- Cuadrícula de botones con icono, nombre y color propios; en un panel se ve como un icono con desplegable, y en el escritorio con estilo glass.
+- Cuadrícula de teclas de vidrio translúcido, cada una con icono, nombre y color propios (5 × 3 por defecto, con las ranuras libres marcadas con un «+»); en un panel se ve como un icono con desplegable.
 - Editor en la configuración del widget: añadir, eliminar y reordenar botones, elegir el icono del tema de Plasma, el color y el comando.
 - Cada botón muestra su resultado: giro mientras corre, verde si terminó bien y rojo si falló (con la primera línea de la salida o el código de error en el pie).
 - Opciones por botón: aplicación (no espera a que termine, ideal para lanzar programas), abrir en una terminal Konsole que queda abierta, y pedir confirmación antes de ejecutar (para cosas como suspender).
