@@ -149,6 +149,21 @@ Botonera de comandos personalizables, al estilo Stream Deck: un botón, un coman
 
 Los comandos se ejecutan con `sh -c` y tus permisos de usuario, así que sirven los mismos que en una terminal.
 
+## Energía (`com.lucas.energia`)
+
+Batería, consumo en vatios y perfil de energía con un clic.
+
+- Porcentaje y estado (cargando, descargando o completa) con el tiempo estimado hasta vaciarse o llenarse, calculado a partir del consumo actual.
+- Consumo en vatios en vivo con un gráfico de los últimos 60 muestreos, salud de la batería (capacidad actual frente a la de diseño) y ciclos de carga.
+- Botones para cambiar entre los perfiles de `power-profiles-daemon`: Ahorro, Equilibrado y Rendimiento. El color del widget acompaña al perfil activo.
+- En un panel se ve como el icono de la batería (con el porcentaje al lado y un punto del color del perfil) y un desplegable con el tema de Plasma; en el escritorio, con estilo glass.
+- Configurable: intervalo de actualización, mostrar u ocultar el gráfico y el porcentaje en el panel.
+
+### Requisitos
+
+- `power-profiles-daemon` (comando `powerprofilesctl`) para los perfiles.
+- Una batería visible en `/sys/class/power_supply` (en una PC de escritorio el widget solo muestra los perfiles).
+
 ## Instalación
 
 Copiá cada carpeta a tu directorio de plasmoids de usuario:

@@ -1,0 +1,21 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Lucas"
+            }
+        ],
+        "Category": "System Information",
+        "Description": "Batería, consumo en vatios y perfil de energía con un clic",
+        "Description[es]": "Batería, consumo en vatios y perfil de energía con un clic",
+        "EnabledByDefault": true,
+        "Icon": "battery-profile-performance",
+        "Id": "com.lucas.energia",
+        "License": "MIT",
+        "Name": "Power Profile (Scenic)",
+        "Name[es]": "Energía",
+        "Version": "1.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}
