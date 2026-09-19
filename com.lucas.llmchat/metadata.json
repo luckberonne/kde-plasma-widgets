@@ -1,0 +1,21 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Lucas"
+            }
+        ],
+        "Category": "Utilities",
+        "Description": "Chat, traductor y corrector con tu LLM local (llama.cpp)",
+        "Description[es]": "Chat, traductor y corrector con tu LLM local (llama.cpp)",
+        "EnabledByDefault": true,
+        "Icon": "im-user-online",
+        "Id": "com.lucas.llmchat",
+        "License": "MIT",
+        "Name": "Local LLM Chat (Scenic)",
+        "Name[es]": "Chat con LLM Local",
+        "Version": "1.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

@@ -74,6 +74,21 @@ Velocidad de bajada y subida en vivo, con mini gráfico de los últimos 60 muest
 - Unidades automáticas (B/s, KB/s, MB/s, GB/s) y tooltip con la interfaz en uso.
 - Configurable: interfaz, intervalo de actualización y mostrar/ocultar el gráfico.
 
+## Chat con LLM Local (`com.lucas.llmchat`)
+
+Chat, traductor y corrector que usan tu propio modelo local vía la API compatible con OpenAI de `llama-server` (llama.cpp).
+
+- Tres modos: **Chat** (con historial de la sesión), **Traducir** (español ↔ inglés automático) y **Corregir** (ortografía y gramática sin cambiar el sentido).
+- Respuestas en streaming, botón para detener, copiar la respuesta y limpiar la conversación.
+- Enter envía, Shift+Enter agrega salto de línea.
+- Se abre desde un icono en el panel (o como widget de escritorio).
+- Configurable: URL del servidor (por defecto `http://127.0.0.1:8080`), temperatura y prompt del sistema del modo chat.
+- Todo queda en tu máquina: no se envía nada a servicios externos.
+
+### Requisitos
+
+- Un `llama-server` corriendo, por ejemplo: `llama-server -m modelo.gguf --host 127.0.0.1 --port 8080`.
+
 ## Instalación
 
 Copiá cada carpeta a tu directorio de plasmoids de usuario:
