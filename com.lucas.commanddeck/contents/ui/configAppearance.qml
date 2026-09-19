@@ -26,10 +26,17 @@ Kirigami.FormLayout {
 
     QQC2.SpinBox {
         id: sizeSpin
-        Kirigami.FormData.label: i18n("Tamaño de los botones (px):")
+        Kirigami.FormData.label: i18n("Tamaño inicial de los botones (px):")
         from: 48
         to: 200
         stepSize: 4
+    }
+
+    QQC2.Label {
+        Layout.fillWidth: true
+        wrapMode: Text.Wrap
+        opacity: 0.7
+        text: i18n("Las teclas se adaptan al tamaño del widget: arrastrá sus bordes en el escritorio para agrandarlo o achicarlo.")
     }
 
     QQC2.CheckBox {

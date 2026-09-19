@@ -22,7 +22,8 @@ PlasmoidItem {
         try { return JSON.parse(Plasmoid.configuration.buttons) } catch (e) { return [] }
     }
     readonly property int columns: Math.max(1, Plasmoid.configuration.columns)
-    readonly property int cell: Math.max(48, Plasmoid.configuration.buttonSize)
+    // Tamaño base de las teclas: solo define el tamaño inicial; después se adaptan al del widget
+    readonly property int baseCell: Math.max(48, Plasmoid.configuration.buttonSize)
     readonly property int rows: Math.max(Math.max(1, Plasmoid.configuration.rows), Math.ceil(buttons.length / columns))
     readonly property int slots: columns * rows
 
@@ -138,21 +139,28 @@ PlasmoidItem {
     fullRepresentation: Item {
         id: view
 
-        readonly property int bodyPad: Math.round(root.cell * 0.08)
-        readonly property int gap: Math.round(root.cell * 0.1)
-        readonly property real gridW: root.columns * root.cell + (root.columns - 1) * gap
-        readonly property real gridH: root.rows * root.cell + (root.rows - 1) * gap
+        readonly property int bodyPad: 6
+        readonly property int gap: 6
         readonly property real footerH: Kirigami.Units.gridUnit * 1.8
+        readonly property int minCell: 36
 
-        Layout.minimumWidth: gridW + bodyPad * 2
-        Layout.minimumHeight: gridH + bodyPad * 2 + footerH
-        Layout.preferredWidth: Layout.minimumWidth
-        Layout.preferredHeight: Layout.minimumHeight
+        // Las teclas se ajustan al tamaño del widget
+        readonly property real cell: Math.max(minCell, Math.floor(Math.min(
+            (width - bodyPad * 2 - (root.columns - 1) * gap) / root.columns,
+            (height - bodyPad * 2 - footerH - (root.rows - 1) * gap) / root.rows)))
+        readonly property real gridW: root.columns * cell + (root.columns - 1) * gap
+        readonly property real gridH: root.rows * cell + (root.rows - 1) * gap
+        readonly property bool labels: Plasmoid.configuration.showLabels && cell >= 56
+
+        Layout.minimumWidth: root.columns * minCell + (root.columns - 1) * gap + bodyPad * 2
+        Layout.minimumHeight: root.rows * minCell + (root.rows - 1) * gap + bodyPad * 2 + footerH
+        Layout.preferredWidth: root.columns * root.baseCell + (root.columns - 1) * gap + bodyPad * 2
+        Layout.preferredHeight: root.rows * root.baseCell + (root.rows - 1) * gap + bodyPad * 2 + footerH
 
         Grid {
             id: grid
-            x: view.bodyPad
-            y: view.bodyPad
+            x: Math.round((view.width - view.gridW) / 2)
+            y: Math.round((view.height - view.footerH - view.gridH) / 2)
             columns: root.columns
             spacing: view.gap
 
@@ -161,8 +169,8 @@ PlasmoidItem {
 
                 delegate: Item {
                     id: btn
-                    width: root.cell
-                    height: root.cell
+                    width: view.cell
+                    height: view.cell
 
                     readonly property var b: index < root.buttons.length ? root.buttons[index] : null
                     readonly property bool empty: b === null
@@ -175,7 +183,7 @@ PlasmoidItem {
                     Rectangle {
                         id: key
                         anchors.fill: parent
-                        radius: root.cell * 0.2
+                        radius: view.cell * 0.2
                         scale: mouse.pressed && !btn.empty ? 0.93 : 1
                         Behavior on scale { NumberAnimation { duration: 80 } }
                         color: btn.empty ? (mouse.containsMouse ? "#22ffffff" : "#0fffffff") : "#1affffff"
@@ -219,7 +227,7 @@ PlasmoidItem {
                             anchors.centerIn: parent
                             text: "+"
                             color: "white"
-                            font.pixelSize: root.cell * 0.4
+                            font.pixelSize: view.cell * 0.4
                             opacity: mouse.containsMouse ? 0.7 : 0.25
                         }
 
@@ -227,11 +235,11 @@ PlasmoidItem {
                             visible: !btn.empty
                             anchors.centerIn: parent
                             width: parent.width - Kirigami.Units.smallSpacing * 2
-                            spacing: Math.round(root.cell * 0.04)
+                            spacing: Math.round(view.cell * 0.04)
 
                             Kirigami.Icon {
                                 Layout.alignment: Qt.AlignHCenter
-                                Layout.preferredWidth: root.cell * (Plasmoid.configuration.showLabels ? 0.44 : 0.58)
+                                Layout.preferredWidth: view.cell * (view.labels ? 0.44 : 0.58)
                                 Layout.preferredHeight: Layout.preferredWidth
                                 source: btn.status === "ok" ? "dialog-ok-apply"
                                       : btn.status === "fail" ? "dialog-error"
@@ -241,13 +249,13 @@ PlasmoidItem {
                             }
 
                             Text {
-                                visible: Plasmoid.configuration.showLabels
+                                visible: view.labels
                                 Layout.fillWidth: true
                                 horizontalAlignment: Text.AlignHCenter
                                 text: btn.confirming ? "¿Seguro?" : (btn.b ? btn.b.name : "")
                                 color: "white"
                                 elide: Text.ElideRight
-                                font.pixelSize: Math.max(9, root.cell * 0.13)
+                                font.pixelSize: Math.max(9, view.cell * 0.13)
                                 font.bold: true
                                 layer.enabled: true
                                 layer.effect: DropShadow {
@@ -263,7 +271,7 @@ PlasmoidItem {
                             anchors.centerIn: parent
                             running: btn.status === "running"
                             visible: running
-                            width: root.cell * 0.5
+                            width: view.cell * 0.5
                             height: width
                         }
                     }
