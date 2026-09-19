@@ -78,7 +78,7 @@ Velocidad de bajada y subida en vivo, con mini gráfico de los últimos 60 muest
 
 Chat, traductor y corrector que usan tu propio modelo local vía la API compatible con OpenAI de `llama-server` (llama.cpp).
 
-- Tres modos: **Chat** (con historial de la sesión), **Traducir** (español ↔ inglés automático) y **Corregir** (ortografía y gramática sin cambiar el sentido).
+- Cuatro modos: **Chat** (con historial de la sesión), **Traducir** (español ↔ inglés automático), **Corregir** (ortografía y gramática sin cambiar el sentido) y **Comando** (describís una tarea en lenguaje natural y devuelve el comando de terminal para copiar; nunca lo ejecuta).
 - Respuestas en streaming, botón para detener, copiar la respuesta y limpiar la conversación.
 - Enter envía, Shift+Enter agrega salto de línea.
 - Se abre desde un icono en el panel (o como widget de escritorio).

@@ -19,7 +19,9 @@ PlasmoidItem {
         { name: "Traducir", hint: "Texto a traducir (es ↔ en)…",
           system: "Sos un traductor. Si el texto está en español, traducilo al inglés; si está en cualquier otro idioma, traducilo al español. Respondé únicamente con la traducción, sin comentarios." },
         { name: "Corregir", hint: "Texto a corregir…",
-          system: "Sos un corrector. Corregí ortografía, gramática y puntuación del texto sin cambiar su idioma ni su sentido. Respondé únicamente con el texto corregido, sin comentarios." }
+          system: "Sos un corrector. Corregí ortografía, gramática y puntuación del texto sin cambiar su idioma ni su sentido. Respondé únicamente con el texto corregido, sin comentarios." },
+        { name: "Comando", hint: "Describí qué querés hacer en la terminal…",
+          system: "Sos un experto en Linux (Arch Linux / CachyOS, shell fish, pacman). El usuario describe una tarea y vos respondés con el comando de terminal que la resuelve, en un único bloque de código ```sh de una sola línea (usá ~ para el home). No agregues pasos que el usuario no pidió (nada de reiniciar, borrar ni --noconfirm)." }
     ]
     property int mode: Plasmoid.configuration.mode
     property bool busy: false
@@ -84,6 +86,10 @@ PlasmoidItem {
                     messages.setProperty(idx, "text", "⚠ No se pudo conectar con " + Plasmoid.configuration.serverUrl)
                 else if (xhr.status >= 400)
                     messages.setProperty(idx, "text", "⚠ Error " + xhr.status + " del servidor")
+                if (mode === 3) {
+                    var cleaned = cleanCommand(messages.get(idx).text)
+                    if (cleaned !== messages.get(idx).text) messages.setProperty(idx, "text", cleaned)
+                }
                 busy = false
                 currentXhr = null
             }
@@ -96,6 +102,16 @@ PlasmoidItem {
             stream: true,
             temperature: Plasmoid.configuration.temperature
         }))
+    }
+
+    // El modelo a veces responde con sintaxis de tool-call o con explicaciones: dejar solo el comando.
+    function cleanCommand(text) {
+        var t = text.replace(/<\|tool_call_(start|end)\|>/g, "").trim()
+        var fence = t.match(/```[a-z]*\n?([\s\S]*?)```/i)
+        if (fence) return fence[1].trim()
+        var call = t.match(/command\s*=\s*(['"])((?:\\[\s\S]|(?!\1)[^\\])*)\1/)
+        if (call) return call[2].replace(/\\([\s\S])/g, "$1").trim()
+        return t
     }
 
     function stop() {
@@ -220,6 +236,7 @@ PlasmoidItem {
                             width: bubble.width - Kirigami.Units.largeSpacing * 2
                             text: model.text === "" ? "…" : model.text
                             textFormat: Text.PlainText
+                            font.family: root.mode === 3 && !mine ? "monospace" : Kirigami.Theme.defaultFont.family
                         }
 
                         QQC2.ToolButton {
