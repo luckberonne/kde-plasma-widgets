@@ -103,6 +103,23 @@ Bandeja de contenedores de Docker: estado de un vistazo y control básico sin ab
 
 - `docker` en el `PATH` y tu usuario en el grupo `docker`.
 
+## Servidor LLM (`com.lucas.llmserver`)
+
+Estado de tu servidor [llama.cpp](https://github.com/ggml-org/llama.cpp) (`llama-server`) y control de su servicio de systemd de usuario. Complementa a Chat con LLM Local.
+
+- Estado: Detenido, Iniciando, Listo o Generando, con un punto de color (que pulsa mientras genera) también en el icono del panel.
+- Tokens por segundo: en vivo mientras genera y promedio de la última generación. Se calcula a partir de `/slots`, así que no hace falta arrancar el servidor con `--metrics`.
+- Contexto ocupado por la última petición, VRAM que usa el proceso del servidor (`nvidia-smi`), RAM del servicio, tiempo activo y nombre del modelo.
+- Botones para iniciar, detener y reiniciar el servicio (`systemctl --user`).
+- En un panel se ve como un icono con desplegable con el tema de Plasma; en el escritorio, con estilo glass.
+- Configurable: URL del servidor, nombre de la unidad systemd (por defecto `llama-server.service`) e intervalo de actualización.
+- No consulta la GPU mientras el servicio está detenido, para no despertar la dedicada en equipos híbridos.
+
+### Requisitos
+
+- `llama-server` corriendo como servicio de usuario de systemd (`~/.config/systemd/user/llama-server.service`).
+- `nvidia-smi` para la VRAM (opcional).
+
 ## Instalación
 
 Copiá cada carpeta a tu directorio de plasmoids de usuario:

@@ -1,0 +1,21 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Lucas"
+            }
+        ],
+        "Category": "System Information",
+        "Description": "Estado del servidor llama.cpp: tokens por segundo, VRAM, contexto y control del servicio systemd",
+        "Description[es]": "Estado del servidor llama.cpp: tokens por segundo, VRAM, contexto y control del servicio systemd",
+        "EnabledByDefault": true,
+        "Icon": "applications-engineering",
+        "Id": "com.lucas.llmserver",
+        "License": "MIT",
+        "Name": "LLM Server (Scenic)",
+        "Name[es]": "Servidor LLM",
+        "Version": "1.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}
