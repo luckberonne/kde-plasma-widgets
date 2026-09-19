@@ -29,6 +29,7 @@ PlasmoidItem {
 
     // Estado por botón: { status: "running" | "ok" | "fail", until: ms }
     property var states: ({})
+    property real nowMs: Date.now()
     property string message: ""
     property bool messageIsError: false
     property int pendingConfirm: -1
@@ -44,7 +45,6 @@ PlasmoidItem {
         var s = Object.assign({}, states)
         s[i] = { status: status, until: Date.now() + 2500 }
         states = s
-        if (status !== "running") clearTimer.restart()
     }
 
     function press(i) {
@@ -105,17 +105,23 @@ PlasmoidItem {
 
     Timer { id: msgTimer; interval: 5000; onTriggered: root.message = "" }
 
-    // Limpia los estados ok/fail una vez cumplido su tiempo de aviso
+    // Reloj que hace expirar los avisos ok/fail; compara contra la hora real, así que
+    // también se limpian si el widget estuvo congelado (por ejemplo, con la pantalla bloqueada)
     Timer {
         id: clearTimer
-        interval: 2600
+        interval: 400
+        repeat: true
+        running: Object.keys(root.states).length > 0
         onTriggered: {
-            var s = {}, now = Date.now()
+            var now = Date.now()
+            root.nowMs = now
+            var s = {}, changed = false
             Object.keys(root.states).forEach(function (k) {
                 var e = root.states[k]
                 if (e.status === "running" || e.until > now) s[k] = e
+                else changed = true
             })
-            root.states = s
+            if (changed) root.states = s
         }
     }
 
@@ -176,7 +182,7 @@ PlasmoidItem {
                     readonly property bool empty: b === null
                     readonly property color accent: b && b.color ? b.color : "#38bdf8"
                     readonly property var st: root.states[index]
-                    readonly property string status: st ? st.status : ""
+                    readonly property string status: st && (st.status === "running" || st.until > root.nowMs) ? st.status : ""
                     readonly property bool confirming: root.pendingConfirm === index
 
                     // Tecla de vidrio translúcido
@@ -287,7 +293,7 @@ PlasmoidItem {
                         }
                     }
 
-                    QQC2.ToolTip.visible: mouse.containsMouse
+                    QQC2.ToolTip.visible: mouse.containsMouse && btn.status === ""
                     QQC2.ToolTip.delay: 600
                     QQC2.ToolTip.text: btn.empty ? "Añadir un botón"
                         : (btn.b.name || "") + ((btn.b.cmd || "").length ? "\n" + btn.b.cmd : "")
