@@ -120,6 +120,22 @@ Estado de tu servidor [llama.cpp](https://github.com/ggml-org/llama.cpp) (`llama
 - `llama-server` corriendo como servicio de usuario de systemd (`~/.config/systemd/user/llama-server.service`).
 - `nvidia-smi` para la VRAM (opcional).
 
+## Tailscale (`com.lucas.tailscale`)
+
+Estado de tu red [Tailscale](https://tailscale.com) y de sus dispositivos, con conexión y desconexión con un clic.
+
+- Icono de panel con un punto de color (verde conectado, gris desconectado, ámbar si requiere inicio de sesión) y desplegable con el tema de Plasma; en el escritorio se ve con estilo glass.
+- Interruptor para conectar o desconectar (`tailscale up` / `tailscale down`).
+- Este equipo con su IP, y la lista de dispositivos con sistema operativo, IP, si están en línea o cuándo se los vio por última vez, y si alguno es exit node.
+- Copiar con un clic la IP o el nombre MagicDNS de cualquier dispositivo.
+- Muestra los avisos de salud de Tailscale y un botón de inicio de sesión cuando hace falta.
+- Configurable: intervalo de actualización y mostrar u ocultar los dispositivos desconectados.
+
+### Requisitos
+
+- `tailscale` y `tailscaled` funcionando.
+- Para que el interruptor funcione sin `sudo`, hay que configurar tu usuario como operador una sola vez: `sudo tailscale set --operator=$USER`. Si falta, el widget te muestra este comando.
+
 ## Instalación
 
 Copiá cada carpeta a tu directorio de plasmoids de usuario:

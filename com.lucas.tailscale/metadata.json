@@ -1,0 +1,21 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Lucas"
+            }
+        ],
+        "Category": "System Information",
+        "Description": "Estado de Tailscale, dispositivos de tu red y conexión con un clic",
+        "Description[es]": "Estado de Tailscale, dispositivos de tu red y conexión con un clic",
+        "EnabledByDefault": true,
+        "Icon": "network-vpn",
+        "Id": "com.lucas.tailscale",
+        "License": "MIT",
+        "Name": "Tailscale (Scenic)",
+        "Name[es]": "Tailscale",
+        "Version": "1.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}
