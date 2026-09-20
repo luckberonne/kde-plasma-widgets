@@ -74,6 +74,19 @@ Velocidad de bajada y subida en vivo, con mini gráfico de los últimos 60 muest
 - Unidades automáticas (B/s, KB/s, MB/s, GB/s) y tooltip con la interfaz en uso.
 - Configurable: interfaz, intervalo de actualización y mostrar/ocultar el gráfico.
 
+## Audio (`com.lucas.audio`)
+
+Control de parlantes y micrófonos en un solo widget.
+
+- Volumen con slider (o rueda del mouse) y silencio con un clic en el ícono, para la salida y la entrada predeterminadas.
+- Lista de dispositivos de salida y entrada: un clic en uno lo deja como predeterminado.
+- Representación compacta para el panel (íconos de parlante y micrófono; clic abre, rueda cambia volumen, clic medio silencia) y completa para el escritorio.
+- Configurable: intervalo de actualización, volumen máximo (hasta 150 %) y mostrar/ocultar salidas HDMI/DisplayPort.
+
+### Requisitos
+
+- `pactl` (PulseAudio o PipeWire con `pipewire-pulse`).
+
 ## Chat con LLM Local (`com.lucas.llmchat`)
 
 Chat, traductor y corrector que usan tu propio modelo local vía la API compatible con OpenAI de `llama-server` (llama.cpp).

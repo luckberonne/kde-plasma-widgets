@@ -1,0 +1,21 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Lucas"
+            }
+        ],
+        "Category": "System Information",
+        "Description": "Control de parlantes y micrófonos: volumen, silencio y dispositivo predeterminado",
+        "Description[es]": "Control de parlantes y micrófonos: volumen, silencio y dispositivo predeterminado",
+        "EnabledByDefault": true,
+        "Icon": "audio-volume-high",
+        "Id": "com.lucas.audio",
+        "License": "MIT",
+        "Name": "Audio (Speakers & Mics)",
+        "Name[es]": "Audio",
+        "Version": "1.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}
