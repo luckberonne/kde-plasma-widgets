@@ -85,6 +85,25 @@ PlasmoidItem {
         root.defaultSource = map.DSOURCE || ""
         root.sinks = convert(map.SINKS || "[]")
         root.sources = convert(map.SOURCES || "[]")
+        autoSwitch(true, root.sinks, knownSinks)
+        autoSwitch(false, root.sources, knownSources)
+        knownSinks = root.sinks.map(function (d) { return d.name })
+        knownSources = root.sources.map(function (d) { return d.name })
+        seenOnce = true
+    }
+
+    // Dispositivos nuevos (auriculares, USB, Bluetooth) pasan a ser el predeterminado
+    property var knownSinks: []
+    property var knownSources: []
+    property bool seenOnce: false
+
+    function autoSwitch(isSink, list, known) {
+        if (!seenOnce || !Plasmoid.configuration.autoSwitch) return
+        for (var i = 0; i < list.length; i++) {
+            var d = list[i]
+            if (known.indexOf(d.name) >= 0 || d.name.indexOf("HDMI") >= 0) continue
+            setDefault(isSink, d.name)
+        }
     }
 
     function visibleSinks() {

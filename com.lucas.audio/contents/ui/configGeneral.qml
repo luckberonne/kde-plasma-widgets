@@ -8,6 +8,7 @@ Kirigami.FormLayout {
     property alias cfg_updateInterval: intervalSpin.value
     property alias cfg_showHdmi: hdmiCheck.checked
     property alias cfg_maxVolume: maxSpin.value
+    property alias cfg_autoSwitch: autoCheck.checked
     property alias cfg_showNotice: noticeCheck.checked
     property alias cfg_noticeSeconds: noticeSpin.value
 
@@ -31,6 +32,12 @@ Kirigami.FormLayout {
         id: hdmiCheck
         Kirigami.FormData.label: i18n("Salidas:")
         text: i18n("Mostrar salidas HDMI / DisplayPort")
+    }
+
+    QQC2.CheckBox {
+        id: autoCheck
+        Kirigami.FormData.label: i18n("Automático:")
+        text: i18n("Usar automáticamente los dispositivos nuevos (auriculares, USB, Bluetooth)")
     }
 
     QQC2.CheckBox {
