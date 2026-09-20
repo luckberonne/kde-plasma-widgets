@@ -196,7 +196,9 @@ Batería, consumo en vatios y perfil de energía con un clic.
 Estado de tus repositorios Git de un vistazo, con acceso directo a code-oss y a Claude Code (incluido su historial).
 
 - Busca los repositorios dentro de una carpeta (por defecto `~/Proyectos`, con profundidad configurable) y muestra para cada uno la rama, los cambios sin commitear, los commits sin pushear (↑) o por traer (↓), si no tiene remoto, y cuándo y con qué mensaje fue el último commit.
-- Los repos con novedades aparecen primero; el resto, ordenados por el commit más reciente. Un punto de color indica el estado: verde al día, ámbar con cambios, celeste con commits por pushear.
+- Un punto de color indica el estado: verde al día, ámbar con cambios, celeste con commits por pushear.
+- **Orden:** el botón de ordenar del encabezado permite elegir entre *novedades primero* (por defecto, el resto por commit más reciente), *último commit*, *última actividad* (lo más reciente entre commit, code-oss y Claude), *nombre (A–Z)* y *manual*: con flechas ▲▼ en cada proyecto. La elección y el orden manual se recuerdan.
+- **Archivar:** el botón de archivo de cada proyecto lo oculta de la lista y de los contadores. El botón de archivados del encabezado (aparece cuando hay alguno) muestra la lista de archivados, desde donde se restauran con un clic. No borra nada, solo oculta.
 - **code-oss:** botón para abrir el proyecto en el editor (configurable, por defecto `code-oss`) y, debajo de cada repo, cuándo lo abriste por última vez en code-oss (se lee del almacenamiento de workspaces del editor).
 - **Claude Code:** botón para abrir una nueva sesión en una terminal (Konsole con fish) ya ubicada en la carpeta del proyecto. Junto a cada repo se ve cuántas sesiones hay y cuándo fue la última.
 - **Historial de Claude Code:** al abrirlo, lista las últimas sesiones del proyecto (título tomado del primer mensaje y fecha), con botones para reanudar una sesión (`claude --resume`), continuar la última (`claude --continue`) o empezar una nueva. Al salir de Claude la terminal queda abierta en fish.

@@ -31,14 +31,84 @@ PlasmoidItem {
     property var histories: ({})         // ruta -> [{ id, ts, title }]
     property var historyRequests: ({})   // comando -> ruta
 
+    property bool showArchived: false    // true: la lista muestra los proyectos archivados
+
     function needsAttention(r) { return r.changes > 0 || r.ahead > 0 }
 
-    readonly property int attentionCount: repos.filter(needsAttention).length
-    readonly property var shownRepos: Plasmoid.configuration.onlyAttention ? repos.filter(needsAttention) : repos
+    function parseList(s) {
+        try { var a = JSON.parse(s); return Array.isArray(a) ? a : [] } catch (e) { return [] }
+    }
+
+    // Rutas archivadas / orden manual, guardados en la configuración del widget
+    readonly property var archivedList: parseList(Plasmoid.configuration.archived)
+    readonly property var activeRepos: repos.filter(function (r) { return archivedList.indexOf(r.path) < 0 })
+    readonly property int archivedCount: repos.length - activeRepos.length
+    readonly property int attentionCount: activeRepos.filter(needsAttention).length
+    readonly property bool manualSort: Plasmoid.configuration.sortMode === "manual"
+
+    readonly property var sortModes: [
+        { id: "auto", label: "Novedades primero" },
+        { id: "recent", label: "Último commit" },
+        { id: "used", label: "Última actividad (commit, code-oss, Claude)" },
+        { id: "name", label: "Nombre (A–Z)" },
+        { id: "manual", label: "Manual (con flechas)" }
+    ]
+
+    function sortList(list, mode, order) {
+        function auto(a, b) {
+            var na = needsAttention(a) ? 0 : 1, nb = needsAttention(b) ? 0 : 1
+            return na !== nb ? na - nb : b.ts - a.ts
+        }
+        function activity(r) { return Math.max(r.ts, r.ossTs, r.claudeTs) }
+        var cmp = auto
+        if (mode === "recent") cmp = function (a, b) { return b.ts - a.ts }
+        else if (mode === "used") cmp = function (a, b) { return activity(b) - activity(a) }
+        else if (mode === "name") cmp = function (a, b) { return a.name.toLowerCase().localeCompare(b.name.toLowerCase()) }
+        else if (mode === "manual") cmp = function (a, b) {
+            var ia = order.indexOf(a.path), ib = order.indexOf(b.path)
+            if (ia < 0 && ib < 0) return auto(a, b)
+            if (ia < 0) return 1
+            if (ib < 0) return -1
+            return ia - ib
+        }
+        return list.slice().sort(cmp)
+    }
+
+    function computeShown() {
+        var arch = archivedList
+        var list = repos.filter(function (r) {
+            if ((arch.indexOf(r.path) >= 0) !== showArchived) return false
+            return showArchived || !Plasmoid.configuration.onlyAttention || needsAttention(r)
+        })
+        return sortList(list, Plasmoid.configuration.sortMode, parseList(Plasmoid.configuration.manualOrder))
+    }
+    readonly property var shownRepos: computeShown()
+
+    function setSort(mode) {
+        if (mode === "manual" && parseList(Plasmoid.configuration.manualOrder).length === 0)
+            Plasmoid.configuration.manualOrder = JSON.stringify(shownRepos.map(function (r) { return r.path }))
+        Plasmoid.configuration.sortMode = mode
+    }
+
+    function moveRepo(path, delta) {
+        var paths = shownRepos.map(function (r) { return r.path })
+        var i = paths.indexOf(path), j = i + delta
+        if (i < 0 || j < 0 || j >= paths.length) return
+        var t = paths[i]; paths[i] = paths[j]; paths[j] = t
+        var rest = parseList(Plasmoid.configuration.manualOrder).filter(function (p) { return paths.indexOf(p) < 0 })
+        Plasmoid.configuration.manualOrder = JSON.stringify(paths.concat(rest))
+    }
+
+    function setArchived(path, on) {
+        var a = archivedList.filter(function (p) { return p !== path })
+        if (on) a.push(path)
+        Plasmoid.configuration.archived = JSON.stringify(a)
+        if (a.length === 0) showArchived = false
+    }
 
     toolTipMainText: "Proyectos Git"
     toolTipSubText: error.length ? error
-        : repos.length + " repositorios" + (attentionCount ? " · " + attentionCount + " con novedades" : " · todo al día")
+        : activeRepos.length + " repositorios" + (attentionCount ? " · " + attentionCount + " con novedades" : " · todo al día")
 
     function localPath(url) {
         var s = url.toString()
@@ -76,10 +146,6 @@ PlasmoidItem {
                 ossTs: parseInt(f[8]) || 0, claudeCount: parseInt(f[9]) || 0, claudeTs: parseInt(f[10]) || 0,
                 ts: parseInt(f[11]) || 0, subject: f.slice(12).join(" ")
             })
-        })
-        list.sort(function (a, b) {
-            var na = root.needsAttention(a) ? 0 : 1, nb = root.needsAttention(b) ? 0 : 1
-            return na !== nb ? na - nb : b.ts - a.ts
         })
         root.error = list.length ? "" : (err || "No se encontraron repositorios")
         root.repos = list
@@ -220,7 +286,7 @@ PlasmoidItem {
     fullRepresentation: Item {
         id: view
 
-        Layout.minimumWidth: Kirigami.Units.gridUnit * 20
+        Layout.minimumWidth: Kirigami.Units.gridUnit * 24
         Layout.minimumHeight: Kirigami.Units.gridUnit * 14
         Layout.preferredWidth: Kirigami.Units.gridUnit * 28
         Layout.preferredHeight: Kirigami.Units.gridUnit * 24
@@ -245,8 +311,38 @@ PlasmoidItem {
                     Layout.fillWidth: true
                     font.bold: true
                     font.pixelSize: Kirigami.Units.gridUnit * 1.1
-                    text: "Proyectos · " + root.repos.length +
+                    text: root.showArchived ? "Archivados · " + root.archivedCount
+                        : "Proyectos · " + root.activeRepos.length +
                           (root.attentionCount ? "  (" + root.attentionCount + " con novedades)" : "  · al día")
+                }
+
+                QQC2.ToolButton {
+                    icon.name: "view-sort-ascending-name"
+                    onClicked: sortMenu.popup(this, 0, height)
+                    QQC2.ToolTip.text: "Ordenar"
+                    QQC2.ToolTip.visible: hovered
+
+                    QQC2.Menu {
+                        id: sortMenu
+                        Repeater {
+                            model: root.sortModes
+                            delegate: QQC2.MenuItem {
+                                required property var modelData
+                                text: (Plasmoid.configuration.sortMode === modelData.id ? "✓  " : "     ") + modelData.label
+                                onTriggered: root.setSort(modelData.id)
+                            }
+                        }
+                    }
+                }
+
+                QQC2.ToolButton {
+                    visible: root.archivedCount > 0 || root.showArchived
+                    icon.name: "archive-extract"
+                    checkable: true
+                    checked: root.showArchived
+                    onClicked: root.showArchived = !root.showArchived
+                    QQC2.ToolTip.text: root.showArchived ? "Volver a los proyectos" : "Ver archivados (" + root.archivedCount + ")"
+                    QQC2.ToolTip.visible: hovered
                 }
 
                 QQC2.ToolButton {
@@ -266,7 +362,8 @@ PlasmoidItem {
                 wrapMode: Text.Wrap
                 elide: Text.ElideNone
                 opacity: 0.7
-                text: root.error.length ? "⚠ " + root.error : "Todo al día ✓"
+                text: root.error.length ? "⚠ " + root.error
+                    : root.showArchived ? "No hay proyectos archivados" : "Todo al día ✓"
             }
 
             ListView {
@@ -312,14 +409,19 @@ PlasmoidItem {
 
                             ColumnLayout {
                                 Layout.fillWidth: true
+                                Layout.minimumWidth: 0
+                                Layout.preferredWidth: 1
                                 spacing: 0
 
                                 RowLayout {
+                                    Layout.minimumWidth: 0
                                     Layout.fillWidth: true
                                     spacing: Kirigami.Units.smallSpacing
                                     GlassText {
                                         text: r.name
                                         font.bold: true
+                                        Layout.minimumWidth: 0
+                                        Layout.maximumWidth: Kirigami.Units.gridUnit * 11
                                     }
                                     Rectangle {
                                         Layout.preferredWidth: branchText.implicitWidth + 10
@@ -387,6 +489,22 @@ PlasmoidItem {
                             RowLayout {
                                 spacing: 0
                                 QQC2.ToolButton {
+                                    visible: root.manualSort && !root.showArchived
+                                    enabled: index > 0
+                                    icon.name: "go-up"
+                                    onClicked: root.moveRepo(r.path, -1)
+                                    QQC2.ToolTip.text: "Subir"
+                                    QQC2.ToolTip.visible: hovered
+                                }
+                                QQC2.ToolButton {
+                                    visible: root.manualSort && !root.showArchived
+                                    enabled: index < root.shownRepos.length - 1
+                                    icon.name: "go-down"
+                                    onClicked: root.moveRepo(r.path, 1)
+                                    QQC2.ToolTip.text: "Bajar"
+                                    QQC2.ToolTip.visible: hovered
+                                }
+                                QQC2.ToolButton {
                                     icon.name: "utilities-terminal"
                                     onClicked: root.openTerminal(r.path)
                                     QQC2.ToolTip.text: "Abrir terminal aquí (fish)"
@@ -422,6 +540,12 @@ PlasmoidItem {
                                     icon.name: "edit-copy"
                                     onClicked: root.copyPath(r.path)
                                     QQC2.ToolTip.text: "Copiar la ruta"
+                                    QQC2.ToolTip.visible: hovered
+                                }
+                                QQC2.ToolButton {
+                                    icon.name: root.showArchived ? "edit-undo" : "archive-insert"
+                                    onClicked: root.setArchived(r.path, !root.showArchived)
+                                    QQC2.ToolTip.text: root.showArchived ? "Restaurar" : "Archivar"
                                     QQC2.ToolTip.visible: hovered
                                 }
                             }
