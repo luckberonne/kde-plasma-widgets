@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
@@ -9,7 +10,8 @@ PlasmoidItem {
     id: root
 
     Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground
-    preferredRepresentation: compactRepresentation
+    switchWidth: Kirigami.Units.gridUnit * 4
+    switchHeight: Kirigami.Units.gridUnit * 4
 
     toolTipMainText: "Transmitir pantalla"
     toolTipSubText: "Chromecast y televisores Miracast"
@@ -45,6 +47,20 @@ PlasmoidItem {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
+            onClicked: root.launch()
+        }
+    }
+
+    fullRepresentation: Item {
+        Layout.minimumWidth: Kirigami.Units.gridUnit * 8
+        Layout.minimumHeight: Kirigami.Units.gridUnit * 4
+        Layout.preferredWidth: Kirigami.Units.gridUnit * 10
+        Layout.preferredHeight: Kirigami.Units.gridUnit * 5
+
+        QQC2.Button {
+            anchors.centerIn: parent
+            icon.name: "video-television"
+            text: "Transmitir pantalla…"
             onClicked: root.launch()
         }
     }
