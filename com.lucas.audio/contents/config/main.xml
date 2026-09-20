@@ -11,6 +11,12 @@
     <entry name="showHdmi" type="Bool">
       <default>false</default>
     </entry>
+    <entry name="showNotice" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="noticeSeconds" type="Int">
+      <default>3</default>
+    </entry>
     <entry name="maxVolume" type="Int">
       <default>100</default>
     </entry>

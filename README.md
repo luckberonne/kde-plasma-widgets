@@ -82,7 +82,7 @@ Control de parlantes y micrófonos en un solo widget.
 - Lista de dispositivos de salida y entrada: un clic en uno lo deja como predeterminado.
 - Representación compacta para el panel (íconos de parlante y micrófono; clic abre, rueda cambia volumen, clic medio silencia) y completa para el escritorio.
 - Aviso gris semitransparente («Se está usando» + salida y entrada) al hacer clic en el botón del panel y cada vez que cambia el dispositivo predeterminado.
-- Configurable: intervalo de actualización, volumen máximo (hasta 150 %) y mostrar/ocultar salidas HDMI/DisplayPort.
+- Configurable: aviso (activar/desactivar y duración), intervalo de actualización, volumen máximo (hasta 150 %) y mostrar/ocultar salidas HDMI/DisplayPort.
 
 ### Requisitos
 

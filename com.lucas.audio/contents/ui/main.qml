@@ -139,11 +139,11 @@ PlasmoidItem {
 
     // Aviso gris semitransparente: qué salida y qué entrada se están usando
     property bool loaded: false
-    function showNotice() { if (loaded) { notice.visible = true; noticeTimer.restart() } }
+    function showNotice() { if (loaded && Plasmoid.configuration.showNotice) { notice.visible = true; noticeTimer.restart() } }
     onDefaultSinkChanged: showNotice()
     onDefaultSourceChanged: showNotice()
     Timer { id: firstLoad; interval: 3000; running: true; onTriggered: root.loaded = true }
-    Timer { id: noticeTimer; interval: 3500; onTriggered: notice.visible = false }
+    Timer { id: noticeTimer; interval: Plasmoid.configuration.noticeSeconds * 1000; onTriggered: notice.visible = false }
 
     PlasmaCore.Dialog {
         id: notice
