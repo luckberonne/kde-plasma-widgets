@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Window
 import Qt5Compat.GraphicalEffects
 import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
@@ -20,6 +21,10 @@ PlasmoidItem {
     property string defaultSink: ""
     property string defaultSource: ""
     property bool dragging: false
+    readonly property real scrX: Screen.virtualX
+    readonly property real scrY: Screen.virtualY
+    readonly property real scrW: Screen.width
+    readonly property real scrH: Screen.height
     property int seq: 0
 
     readonly property int maxVolume: Plasmoid.configuration.maxVolume
@@ -130,6 +135,62 @@ PlasmoidItem {
         repeat: true
         triggeredOnStart: true
         onTriggered: root.refresh()
+    }
+
+    // Aviso gris semitransparente: qué salida y qué entrada se están usando
+    property bool loaded: false
+    function showNotice() { if (loaded) { notice.visible = true; noticeTimer.restart() } }
+    onDefaultSinkChanged: showNotice()
+    onDefaultSourceChanged: showNotice()
+    Timer { id: firstLoad; interval: 3000; running: true; onTriggered: root.loaded = true }
+    Timer { id: noticeTimer; interval: 3500; onTriggered: notice.visible = false }
+
+    PlasmaCore.Dialog {
+        id: notice
+        visible: false
+        location: PlasmaCore.Types.Floating
+        type: PlasmaCore.Dialog.OnScreenDisplay
+        backgroundHints: PlasmaCore.Types.NoBackground
+        flags: Qt.WindowDoesNotAcceptFocus | Qt.WindowStaysOnTopHint
+        x: root.scrX + (root.scrW - width) / 2
+        y: root.scrY + root.scrH * 0.78
+
+        mainItem: Rectangle {
+            implicitWidth: noticeCol.implicitWidth + Kirigami.Units.gridUnit * 2
+            implicitHeight: noticeCol.implicitHeight + Kirigami.Units.gridUnit * 1.5
+            radius: 14
+            color: "#b3323236"
+            border.color: "#33ffffff"
+            border.width: 1
+
+            ColumnLayout {
+                id: noticeCol
+                anchors.centerIn: parent
+                spacing: Kirigami.Units.smallSpacing
+                Shadowed {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: "Se está usando"
+                    opacity: 0.7
+                    font.pixelSize: Kirigami.Units.gridUnit * 0.7
+                }
+                RowLayout {
+                    spacing: Kirigami.Units.largeSpacing
+                    Kirigami.Icon { source: root.speakerIcon; color: "#7dd3fc"; implicitWidth: Kirigami.Units.iconSizes.smallMedium; implicitHeight: implicitWidth }
+                    Shadowed {
+                        text: root.curSink ? root.curSink.desc : "sin salida"
+                        font.bold: true
+                    }
+                }
+                RowLayout {
+                    spacing: Kirigami.Units.largeSpacing
+                    Kirigami.Icon { source: root.micIcon; color: "#f9a8d4"; implicitWidth: Kirigami.Units.iconSizes.smallMedium; implicitHeight: implicitWidth }
+                    Shadowed {
+                        text: root.curSource ? root.curSource.desc : "sin micrófono"
+                        font.bold: true
+                    }
+                }
+            }
+        }
     }
 
     component Shadowed: Text {
@@ -321,7 +382,7 @@ PlasmoidItem {
             acceptedButtons: Qt.LeftButton | Qt.MiddleButton
             onClicked: (m) => {
                 if (m.button === Qt.MiddleButton) { if (root.curSink) root.toggleMute(true, root.defaultSink) }
-                else Plasmoid.expanded = !Plasmoid.expanded
+                else { root.loaded = true; root.showNotice(); Plasmoid.expanded = !Plasmoid.expanded }
             }
             onWheel: (w) => {
                 if (root.curSink)
@@ -335,6 +396,14 @@ PlasmoidItem {
         Layout.minimumHeight: Kirigami.Units.gridUnit * 10
         Layout.preferredWidth: Kirigami.Units.gridUnit * 20
         Layout.preferredHeight: Kirigami.Units.gridUnit * 14
+
+        Rectangle {
+            anchors.fill: parent
+            radius: 14
+            color: "#b3323236"
+            border.color: "#33ffffff"
+            border.width: 1
+        }
 
         ColumnLayout {
             anchors.fill: parent
