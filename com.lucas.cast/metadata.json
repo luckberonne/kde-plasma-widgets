@@ -1,0 +1,21 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Lucas"
+            }
+        ],
+        "Category": "System Information",
+        "Description": "Transmite la pantalla a Chromecast y televisores Miracast",
+        "Description[es]": "Transmite la pantalla a Chromecast y televisores Miracast",
+        "EnabledByDefault": true,
+        "Icon": "video-television",
+        "Id": "com.lucas.cast",
+        "License": "MIT",
+        "Name": "Cast Screen",
+        "Name[es]": "Transmitir pantalla",
+        "Version": "1.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

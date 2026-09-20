@@ -212,6 +212,18 @@ Estado de tus repositorios Git de un vistazo, con acceso directo a code-oss y a 
 - `git`, Konsole, `fish` y `python3` (para leer los títulos de las sesiones).
 - `code-oss` y `claude` en el `PATH` (opcionales: sin ellos solo fallan sus botones).
 
+## Transmitir Pantalla (`com.lucas.cast`)
+
+Botón para el panel que abre GNOME Network Displays y transmite la pantalla a un Chromecast o a un televisor con Miracast (el equivalente a Win+K de Windows).
+
+- Un clic abre la app: elegís qué compartir (pantalla, ventana o región) y después el televisor.
+- Al widget se le puede asignar un atajo de teclado desde su configuración (Atajos), útil si no tenés tecla Super.
+
+### Requisitos
+
+- `flatpak` y la app `org.gnome.NetworkDisplays` de Flathub (`flatpak install --user flathub org.gnome.NetworkDisplays`).
+- Para Miracast, una placa Wi‑Fi con soporte P2P y `wpa_supplicant`; para Chromecast, estar en la misma red.
+
 ## Instalación
 
 Copiá cada carpeta a tu directorio de plasmoids de usuario:
