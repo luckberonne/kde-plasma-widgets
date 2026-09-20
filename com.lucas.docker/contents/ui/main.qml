@@ -43,6 +43,21 @@ PlasmoidItem {
         return p.split(", ").filter(x => x.indexOf("[::]") !== 0).join(", ")
     }
 
+    // Puertos publicados que probablemente sean web (front/API): se excluyen
+    // los de bases de datos, colas, SSH, etc.
+    readonly property var nonWebPorts: [21, 22, 25, 53, 1433, 1521, 2181, 3306, 5432, 5672, 6379, 9092, 9042, 11211, 27017, 26257, 5671, 1883, 8883]
+
+    function webPorts(p) {
+        var res = []
+        p.split(", ").forEach(function (x) {
+            var m = x.match(/:(\d+)->\d+\/tcp$/)
+            if (!m) return
+            var port = parseInt(m[1])
+            if (nonWebPorts.indexOf(port) < 0 && res.indexOf(port) < 0) res.push(port)
+        })
+        return res
+    }
+
     function parseList(out) {
         var list = []
         var err = ""
@@ -54,7 +69,8 @@ PlasmoidItem {
                 var o = JSON.parse(line)
                 list.push({
                     name: o.Names, image: o.Image, state: o.State,
-                    status: o.Status, ports: cleanPorts(o.Ports || "")
+                    status: o.Status, ports: cleanPorts(o.Ports || ""),
+                    web: webPorts(cleanPorts(o.Ports || ""))
                 })
             } catch (e) {}
         })
@@ -314,6 +330,16 @@ PlasmoidItem {
                             visible: !card.busy
                             spacing: 0
 
+                            Repeater {
+                                model: card.running ? c.web : []
+                                QQC2.ToolButton {
+                                    icon.name: "internet-web-browser"
+                                    text: c.web.length > 1 ? modelData : ""
+                                    onClicked: Qt.openUrlExternally("http://localhost:" + modelData)
+                                    QQC2.ToolTip.text: "Abrir http://localhost:" + modelData
+                                    QQC2.ToolTip.visible: hovered
+                                }
+                            }
                             QQC2.ToolButton {
                                 icon.name: card.running ? "media-playback-stop" : "media-playback-start"
                                 onClicked: root.act(card.running ? "stop" : "start", c.name)
