@@ -89,6 +89,18 @@ Control de parlantes y micrófonos en un solo widget.
 
 - `pactl` (PulseAudio o PipeWire con `pipewire-pulse`).
 
+### Cambio automático sin el widget
+
+El cambio automático también existe como servicio de usuario de systemd, que funciona aunque el widget no esté en ningún panel (usa `notify-send` para avisar):
+
+```sh
+install -m755 com.lucas.audio/contents/code/audio-autoswitch.sh ~/.local/bin/audio-autoswitch
+cp com.lucas.audio/contents/code/audio-autoswitch.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now audio-autoswitch    # activar (y en cada inicio de sesión)
+systemctl --user disable --now audio-autoswitch   # desactivar
+```
+
 ## Chat con LLM Local (`com.lucas.llmchat`)
 
 Chat, traductor y corrector que usan tu propio modelo local vía la API compatible con OpenAI de `llama-server` (llama.cpp).

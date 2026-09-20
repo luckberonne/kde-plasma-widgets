@@ -1,0 +1,10 @@
+[Unit]
+Description=Cambio automático de dispositivos de audio
+After=pipewire-pulse.service
+
+[Service]
+ExecStart=%h/.local/bin/audio-autoswitch
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
