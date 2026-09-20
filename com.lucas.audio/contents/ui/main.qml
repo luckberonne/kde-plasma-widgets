@@ -344,12 +344,14 @@ PlasmoidItem {
                 readonly property bool active: modelData.name === sec.current
                 Layout.fillWidth: true
                 implicitHeight: Kirigami.Units.gridUnit * 1.8
+                implicitWidth: devRow.implicitWidth + Kirigami.Units.largeSpacing * 2
                 radius: 8
                 color: active ? "#33ffffff" : hover.hovered ? "#1affffff" : "transparent"
                 border.color: active ? sec.accent : "transparent"
                 border.width: 1
 
                 RowLayout {
+                    id: devRow
                     anchors.fill: parent
                     anchors.leftMargin: Kirigami.Units.largeSpacing
                     anchors.rightMargin: Kirigami.Units.largeSpacing
@@ -411,10 +413,15 @@ PlasmoidItem {
     }
 
     fullRepresentation: Item {
+        id: full
+        readonly property real pad: Kirigami.Units.largeSpacing
+        implicitWidth: content.implicitWidth + pad * 2
+        implicitHeight: content.implicitHeight + pad * 2
+
         Layout.minimumWidth: Kirigami.Units.gridUnit * 14
-        Layout.minimumHeight: Kirigami.Units.gridUnit * 10
-        Layout.preferredWidth: Kirigami.Units.gridUnit * 20
-        Layout.preferredHeight: Kirigami.Units.gridUnit * 14
+        Layout.preferredWidth: Math.min(implicitWidth, Kirigami.Units.gridUnit * 36)
+        Layout.minimumHeight: implicitHeight
+        Layout.preferredHeight: implicitHeight
 
         Rectangle {
             anchors.fill: parent
@@ -425,8 +432,9 @@ PlasmoidItem {
         }
 
         ColumnLayout {
+            id: content
             anchors.fill: parent
-            anchors.margins: Kirigami.Units.largeSpacing
+            anchors.margins: full.pad
             spacing: Kirigami.Units.largeSpacing
 
             Section {
@@ -449,7 +457,6 @@ PlasmoidItem {
                 icon: root.micIcon
                 accent: "#f9a8d4"
             }
-            Item { Layout.fillHeight: true }
         }
     }
 }
