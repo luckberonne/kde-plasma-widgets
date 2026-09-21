@@ -1,0 +1,11 @@
+{
+    "KPlugin": {
+        "Authors": [{ "Name": "lucas" }],
+        "Description": "Breeze con paneles y menús de vidrio",
+        "Id": "Glass",
+        "License": "GPL-2.0-or-later",
+        "Name": "Glass"
+    },
+    "X-Plasma-APIVersion": 2,
+    "KPackageStructure": "Plasma/Theme"
+}

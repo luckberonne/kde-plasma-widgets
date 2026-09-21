@@ -224,6 +224,24 @@ Botón para el panel que abre GNOME Network Displays y transmite la pantalla a u
 - `flatpak` y la app `org.gnome.NetworkDisplays` de Flathub (`flatpak install --user flathub org.gnome.NetworkDisplays`).
 - Para Miracast, una placa Wi‑Fi con soporte P2P y `wpa_supplicant`; para Chromecast, estar en la misma red.
 
+## Tema Plasma Glass (`themes/Glass`)
+
+Estilo de Plasma basado en Breeze con paneles, desplegables, notificaciones y tooltips de vidrio: fondo translúcido con el desenfoque de KWin.
+
+- Paneles: fondo muy translúcido (opacidad 0.40).
+- Desplegables, notificaciones, OSD y tooltips: fondo al 0.35.
+- Incluye las variantes `translucent/` y `opaque/`, para que el vidrio se mantenga también cuando Plasma elige la variante opaca (transparencia adaptativa). Lo que no trae (iconos, colores) lo toma del tema por defecto.
+- Sobre un fondo oscuro (por ejemplo una terminal maximizada) el vidrio casi no se nota, porque el fondo del popup y lo que tiene detrás son del mismo tono.
+
+Instalación:
+
+```bash
+cp -r themes/Glass ~/.local/share/plasma/desktoptheme/
+plasmashell --replace &
+```
+
+Después, en **Preferencias del sistema → Apariencia → Estilo de Plasma**, elegí "Glass".
+
 ## Instalación
 
 Copiá cada carpeta a tu directorio de plasmoids de usuario:
