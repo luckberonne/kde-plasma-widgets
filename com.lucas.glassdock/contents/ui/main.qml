@@ -273,7 +273,40 @@ PlasmoidItem {
     }
     readonly property var tipWindows: tipTask && !tipTask.isLauncher ? tipTask.winIds : []
 
+    // ---------- peek de ventana ----------
+    // Resalta una ventana con el efecto "Resaltar ventana" de KWin (el mismo que
+    // usa el task manager oficial): la ventana queda al frente y las demás se
+    // desvanecen, sin cambiar el foco ni el orden de apilado. Al soltar, todo
+    // vuelve a como estaba. Se llama a KWin por D-Bus con busctl.
+    property int peekSeq: 0
+    property bool peeking: false
+
+    function peekWindow(winId) {
+        if (!Plasmoid.configuration.peekOnHover || !winId) return
+        peeking = true
+        exec.connectSource("busctl --user call org.kde.KWin /org/kde/KWin/HighlightWindow "
+                           + "org.kde.KWin.HighlightWindow highlightWindows as 1 "
+                           + shellQuote(String(winId)) + " # " + (++peekSeq))
+    }
+
+    function clearPeek() {
+        peekTimer.stop()
+        if (!peeking) return
+        peeking = false
+        exec.connectSource("busctl --user call org.kde.KWin /org/kde/KWin/HighlightWindow "
+                           + "org.kde.KWin.HighlightWindow highlightWindows as 0 # " + (++peekSeq))
+    }
+
+    property var peekTarget: null
+    Timer {
+        id: peekTimer
+        interval: 350
+        onTriggered: root.peekWindow(root.peekTarget)
+    }
+    Component.onDestruction: clearPeek()
+
     function hideTips() {
+        clearPeek()
         for (let i = 0; i < repeater.count; i++) {
             const it = repeater.itemAt(i)
             if (it) it.hideTip()
@@ -285,6 +318,7 @@ PlasmoidItem {
 
         readonly property var task: root.tipTask
         readonly property var windows: root.tipWindows
+        onVisibleChanged: if (!visible) root.clearPeek()
         property bool dragInside: false
         function pingDragInside() { dragInside = true; dragInsideTimer.restart() }
         Timer { id: dragInsideTimer; interval: 500; onTriggered: tipRoot.dragInside = false }
@@ -347,7 +381,20 @@ PlasmoidItem {
                         cursorShape: Qt.PointingHandCursor
                         acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
 
+                        // Quedarse sobre la miniatura muestra esa ventana al frente; salir
+                        // (o hacer clic) lo deshace.
+                        onContainsMouseChanged: {
+                            if (containsMouse) {
+                                root.peekTarget = modelData
+                                peekTimer.restart()
+                            } else if (root.peekTarget === modelData) {
+                                root.peekTarget = null
+                                root.clearPeek()
+                            }
+                        }
+
                         onClicked: mouse => {
+                            root.clearPeek()
                             // Una ventana suelta se direcciona por su fila; dentro de un
                             // grupo hace falta el índice hijo.
                             const t = tipRoot.task
@@ -430,6 +477,16 @@ PlasmoidItem {
                             radius: Kirigami.Units.cornerRadius
                             color: Kirigami.Theme.textColor
                             opacity: previewItem.containsMouse ? 0.14 : 0.06
+                            Behavior on opacity { NumberAnimation { duration: 120 } }
+                        }
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: Kirigami.Units.cornerRadius
+                            color: "transparent"
+                            border.width: 1
+                            border.color: Kirigami.Theme.highlightColor
+                            opacity: previewItem.containsMouse ? 0.8 : 0
                             Behavior on opacity { NumberAnimation { duration: 120 } }
                         }
 
@@ -951,6 +1008,7 @@ PlasmoidItem {
                         bounceAnim.stop()
                         startupBounce.restart()
                     }
+                    onNeedsAttentionChanged: if (needsAttention && !isStartup) bounce()
                     onIsStartupChanged: {
                         if (isStartup) {
                             startBouncing()
@@ -1004,6 +1062,12 @@ PlasmoidItem {
                             geometryAnchor)
                     }
 
+                    // Al mantener apretado el botón izquierdo el icono se hunde un poco,
+                    // salvo que ya se esté reordenando (ahí el icono sigue al puntero).
+                    property real pressScale: dockArea.pressed && !dockArea.reordering
+                        && root.reorderIndex === index ? 0.9 : 1.0
+                    Behavior on pressScale { NumberAnimation { duration: 90; easing.type: Easing.OutCubic } }
+
                     // 0 -> 1 al aparecer un icono nuevo (app que se abre o se fija).
                     property real appear: 1
                     NumberAnimation {
@@ -1038,7 +1102,7 @@ PlasmoidItem {
                         roundToIconSize: false
                         opacity: (dockItem.previewIndex >= 0 ? 0 : (dockItem.isMinimized ? 0.55 : 1.0))
                                  * Math.min(1, dockItem.appear)
-                        scale: 0.6 + 0.4 * dockItem.appear
+                        scale: (0.6 + 0.4 * dockItem.appear) * dockItem.pressScale
 
                         width: root.baseIcon * dockItem.magnify
                         height: width
@@ -1105,7 +1169,9 @@ PlasmoidItem {
 
                     Rectangle {
                         id: badge
-                        visible: dockItem.unread > 0
+                        visible: scale > 0
+                        scale: dockItem.unread > 0 ? 1 : 0
+                        Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutBack } }
                         z: 2
                         height: Math.round(icon.height * 0.36)
                         width: Math.max(height, badgeText.implicitWidth + height * 0.5)
@@ -1126,7 +1192,9 @@ PlasmoidItem {
 
                     Rectangle {
                         id: progressTrack
-                        visible: dockItem.busy
+                        visible: opacity > 0
+                        opacity: dockItem.busy ? 1 : 0
+                        Behavior on opacity { NumberAnimation { duration: 180 } }
                         z: 2
                         width: icon.width * 0.8
                         height: Math.max(3, Math.round(icon.height * 0.09))
@@ -1152,7 +1220,9 @@ PlasmoidItem {
 
                     Rectangle {
                         id: audioBadge
-                        visible: dockItem.playing || dockItem.muted
+                        visible: scale > 0
+                        scale: dockItem.playing || dockItem.muted ? 1 : 0
+                        Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutBack } }
                         z: 3
                         width: Math.round(icon.width * 0.38)
                         height: width
@@ -1202,7 +1272,7 @@ PlasmoidItem {
 
                     Loader {
                         active: !dockItem.isLauncher && dockItem.dotCount > 0
-                        sourceComponent: root.vertical ? dotColumn : dotRow
+                        sourceComponent: dots
 
                         x: !root.vertical ? (parent.width - width) / 2
                            : root.edgeRight ? parent.width - (root.dotSpace + width) / 2
@@ -1213,8 +1283,10 @@ PlasmoidItem {
                     }
 
                     Component {
-                        id: dotRow
-                        Row {
+                        id: dots
+                        Grid {
+                            // Una fila en un dock horizontal, una columna en uno vertical.
+                            columns: root.vertical ? 1 : Math.max(1, dockItem.dotCount)
                             spacing: dockItem.dotGap
                             Repeater {
                                 model: dockItem.dotCount
@@ -1227,26 +1299,7 @@ PlasmoidItem {
                                                              : Kirigami.Theme.textColor
                                     Behavior on color { ColorAnimation { duration: 150 } }
                                     opacity: dockItem.isActive ? 0.95 : 0.6
-                                    Behavior on width { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
-                                }
-                            }
-                        }
-                    }
-                    Component {
-                        id: dotColumn
-                        Column {
-                            spacing: dockItem.dotGap
-                            Repeater {
-                                model: dockItem.dotCount
-                                delegate: Rectangle {
-                                    width: dockItem.dotSize
-                                    height: width
-                                    radius: width / 2
-                                    color: dockItem.needsAttention ? Kirigami.Theme.negativeTextColor
-                                         : dockItem.isActive ? Kirigami.Theme.highlightColor
-                                                             : Kirigami.Theme.textColor
-                                    Behavior on color { ColorAnimation { duration: 150 } }
-                                    opacity: dockItem.isActive ? 0.95 : 0.6
+                                    Behavior on opacity { NumberAnimation { duration: 150 } }
                                     Behavior on width { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
                                 }
                             }

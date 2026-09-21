@@ -16,6 +16,7 @@ KCM.SimpleKCM {
     property alias cfg_showBadges: badges.checked
     property alias cfg_showAudio: audio.checked
     property alias cfg_cycleIconPreview: cyclePreview.checked
+    property alias cfg_peekOnHover: peek.checked
     property alias cfg_hidePanelBackground: hideBackground.checked
 
     Kirigami.FormLayout {
@@ -79,6 +80,10 @@ KCM.SimpleKCM {
         QQC2.CheckBox {
             id: cyclePreview
             text: i18n("En apps con varias ventanas, mostrarlas por turnos en el icono al pasar el mouse")
+        }
+        QQC2.CheckBox {
+            id: peek
+            text: i18n("Al mantener el mouse sobre una miniatura, traer esa ventana al frente temporalmente")
         }
         QQC2.CheckBox {
             id: audio
