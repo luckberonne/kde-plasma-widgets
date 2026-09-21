@@ -84,6 +84,11 @@ PlasmoidItem {
     Layout.maximumWidth:    vertical ? Infinity : dockLength
     Layout.maximumHeight:   vertical ? dockLength : Infinity
 
+    // Los iconos que aparecen después de esto entran con animación; los del
+    // arranque del panel aparecen ya en su lugar.
+    property bool settled: false
+    Timer { running: true; interval: 2500; onTriggered: root.settled = true }
+
     // ---------- modelo de tareas ----------
     TaskManager.VirtualDesktopInfo { id: virtualDesktopInfo }
     TaskManager.ActivityInfo { id: activityInfo }
@@ -999,7 +1004,16 @@ PlasmoidItem {
                             geometryAnchor)
                     }
 
+                    // 0 -> 1 al aparecer un icono nuevo (app que se abre o se fija).
+                    property real appear: 1
+                    NumberAnimation {
+                        id: appearAnim
+                        target: dockItem; property: "appear"; to: 1
+                        duration: 320; easing.type: Easing.OutBack
+                    }
+
                     Component.onCompleted: {
+                        if (root.settled) { appear = 0; appearAnim.start() }
                         publishTimer.restart()
                         // Una app lanzada desde otro lado aparece ya en estado de arranque.
                         if (isStartup) startBouncing()
@@ -1022,7 +1036,9 @@ PlasmoidItem {
                         // Sin esto Kirigami redondea hacia abajo al tamaño estándar más
                         // cercano (45 px -> 32 px) y el zoom avanza a saltos.
                         roundToIconSize: false
-                        opacity: dockItem.previewIndex >= 0 ? 0 : (dockItem.isMinimized ? 0.55 : 1.0)
+                        opacity: (dockItem.previewIndex >= 0 ? 0 : (dockItem.isMinimized ? 0.55 : 1.0))
+                                 * Math.min(1, dockItem.appear)
+                        scale: 0.6 + 0.4 * dockItem.appear
 
                         width: root.baseIcon * dockItem.magnify
                         height: width
@@ -1207,7 +1223,9 @@ PlasmoidItem {
                                     height: width
                                     radius: width / 2
                                     color: dockItem.needsAttention ? Kirigami.Theme.negativeTextColor
-                                                                   : Kirigami.Theme.textColor
+                                         : dockItem.isActive ? Kirigami.Theme.highlightColor
+                                                             : Kirigami.Theme.textColor
+                                    Behavior on color { ColorAnimation { duration: 150 } }
                                     opacity: dockItem.isActive ? 0.95 : 0.6
                                     Behavior on width { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
                                 }
@@ -1225,7 +1243,9 @@ PlasmoidItem {
                                     height: width
                                     radius: width / 2
                                     color: dockItem.needsAttention ? Kirigami.Theme.negativeTextColor
-                                                                   : Kirigami.Theme.textColor
+                                         : dockItem.isActive ? Kirigami.Theme.highlightColor
+                                                             : Kirigami.Theme.textColor
+                                    Behavior on color { ColorAnimation { duration: 150 } }
                                     opacity: dockItem.isActive ? 0.95 : 0.6
                                     Behavior on width { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
                                 }
