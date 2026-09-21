@@ -14,6 +14,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.taskmanager as TaskManager
 import org.kde.notificationmanager as NotificationManager
 import org.kde.plasma.private.volume as PlasmaPa
+import org.kde.plasma.plasma5support as Plasma5Support
 
 PlasmoidItem {
     id: root
@@ -339,7 +340,7 @@ PlasmoidItem {
                         height: tipRoot.previewH
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+                        acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
 
                         onClicked: mouse => {
                             // Una ventana suelta se direcciona por su fila; dentro de un
@@ -348,6 +349,12 @@ PlasmoidItem {
                             const idx = (t && t.isGroup)
                                 ? tasksModel.makeModelIndex(root.tipIndex, index)
                                 : tasksModel.makeModelIndex(root.tipIndex)
+
+                            // Clic derecho: acciones de esa ventana.
+                            if (mouse.button === Qt.RightButton) {
+                                root.openWindowMenu(root.tipIndex, idx)
+                                return
+                            }
 
                             // Rueda del medio sobre una miniatura: cierra sólo esa ventana
                             // y deja el tooltip abierto con las demás.
@@ -788,6 +795,7 @@ PlasmoidItem {
                     return
                 }
                 root.hideTips()
+                contextMenu.visible = false
                 track(mouse)
                 const i = root.focusedIndex
                 if (i < 0) return
@@ -800,7 +808,7 @@ PlasmoidItem {
                 if (mouse.button === Qt.RightButton) {
                     contextMenu.taskIndex = i
                     contextMenu.isLauncher = repeater.itemAt(i).isLauncher
-                    contextMenu.popup()
+                    root.openContextMenu(repeater.itemAt(i).desktopEntry)
                     return
                 }
 
@@ -1230,48 +1238,206 @@ PlasmoidItem {
         }
     }
 
-    QQC2.Menu {
+    // ---- acciones de la app (Actions= del .desktop) ----
+    // Se consultan con un script al hacer clic derecho y el menú se abre cuando
+    // llega la respuesta; si el script falla o tarda, se abre igual sin acciones.
+    readonly property string actionsScript:
+        Qt.resolvedUrl("../scripts/actions.py").toString().replace(/^file:\/\//, "")
+    property string pendingActionsCmd: ""
+
+    function shellQuote(str) { return "'" + String(str).replace(/'/g, "'\\''") + "'" }
+
+    // Menú de una ventana concreta (clic derecho en su miniatura). Se ancla al
+    // icono del dock y no a la miniatura: ésa vive en la ventana del tooltip,
+    // que se cierra al abrir esto.
+    function openWindowMenu(i, winIdx) {
+        root.hideTips()
+        root.closeDragPreview()
+        contextMenu.taskIndex = i
+        contextMenu.isLauncher = false
+        contextMenu.appActions = []
+        contextMenu.winIdx = winIdx
+        contextMenu.windowMode = true
+        contextMenu.popup()
+    }
+
+    function openContextMenu(entry) {
+        contextMenu.windowMode = false
+        contextMenu.appActions = []
+        if (entry === "") { contextMenu.popup(); return }
+        pendingActionsCmd = "python3 " + shellQuote(actionsScript) + " " + shellQuote(entry)
+        actionsFallback.restart()
+        exec.connectSource(pendingActionsCmd)
+    }
+
+    Timer {
+        id: actionsFallback
+        interval: 1500
+        onTriggered: { root.pendingActionsCmd = ""; contextMenu.popup() }
+    }
+
+    Plasma5Support.DataSource {
+        id: exec
+        engine: "executable"
+        connectedSources: []
+        onNewData: (sourceName, data) => {
+            disconnectSource(sourceName)
+            if (sourceName !== root.pendingActionsCmd) return
+            root.pendingActionsCmd = ""
+            actionsFallback.stop()
+            let list = []
+            try { list = JSON.parse(data["stdout"] ? data["stdout"].toString() : "[]") } catch (e) {}
+            contextMenu.appActions = list.filter(a => a.name !== i18n("Nueva ventana"))
+            contextMenu.popup()
+        }
+    }
+
+    // Popup de acciones: un PlasmaCore.Dialog anclado al icono, como el tooltip, así
+    // se abre del lado de adentro del panel (arriba, si el dock está abajo) y sin
+    // scroll, en vez del menú nativo que se dibujaba encima del dock.
+    PlasmaCore.Dialog {
         id: contextMenu
+        property var appActions: []
         property int taskIndex: -1
         property bool isLauncher: false
-        // desktopEntry de la tarea sobre la que se abrió el menú; -1/"" cuando no
-        // hay ninguna app que excluir (por ejemplo, con el índice todavía sin fijar).
+        property bool excluded: false
+        // Modo ventana: acciones de una ventana puntual (winIdx) en vez de la app.
+        property bool windowMode: false
+        property var winIdx: null
+        property bool winMinimized: false
+        property bool winMaximized: false
+        property bool winAbove: false
+        property string winTitle: ""
+        // desktopEntry de la tarea sobre la que se abrió el menú; "" cuando no
+        // hay ninguna app que excluir.
         readonly property string entry: {
             const t = taskIndex >= 0 ? repeater.itemAt(taskIndex) : null
             return t ? t.desktopEntry : ""
         }
-        onAboutToShow: excludeItem.checked = entry !== ""
-            && Plasmoid.configuration.excludedApps.indexOf(entry) >= 0
 
-        QQC2.MenuItem {
-            text: i18n("Nueva ventana")
-            onTriggered: tasksModel.requestNewInstance(tasksModel.makeModelIndex(contextMenu.taskIndex))
-        }
-        QQC2.MenuItem {
-            text: contextMenu.isLauncher ? i18n("Quitar del dock") : i18n("Fijar al dock")
-            onTriggered: {
-                const t = repeater.itemAt(contextMenu.taskIndex)
-                if (!t) return
-                if (contextMenu.isLauncher) tasksModel.requestRemoveLauncher(t.launcherUrl)
-                else tasksModel.requestAddLauncher(t.launcherUrl)
+        location: Plasmoid.location
+        visible: false
+        hideOnWindowDeactivate: true
+
+        function popup() {
+            const t = taskIndex >= 0 ? repeater.itemAt(taskIndex) : null
+            if (!t) return
+            excluded = entry !== "" && Plasmoid.configuration.excludedApps.indexOf(entry) >= 0
+            if (windowMode && winIdx) {
+                const A = TaskManager.AbstractTasksModel
+                winMinimized = tasksModel.data(winIdx, A.IsMinimized) === true
+                winMaximized = tasksModel.data(winIdx, A.IsMaximized) === true
+                winAbove = tasksModel.data(winIdx, A.IsKeepAbove) === true
+                winTitle = tasksModel.data(winIdx, Qt.DisplayRole) || ""
             }
+            visualParent = t
+            visible = true
         }
-        QQC2.MenuSeparator {}
-        // No se liga `checked` a una expresión: al tocarlo, Qt lo reescribe a
-        // mano igual que con Timer.running (ver dwellTimer más arriba), rompiendo
-        // el binding para siempre. Se recalcula explícitamente en cada apertura.
-        QQC2.MenuItem {
-            id: excludeItem
-            text: i18n("Sin insignias ni audio para esta app")
-            checkable: true
-            enabled: contextMenu.entry !== ""
-            onTriggered: root.toggleAppExcluded(contextMenu.entry)
+        function run(fn) {
+            visible = false
+            fn()
         }
-        QQC2.MenuSeparator {}
-        QQC2.MenuItem {
-            text: i18n("Cerrar")
-            enabled: !contextMenu.isLauncher
-            onTriggered: tasksModel.requestClose(tasksModel.makeModelIndex(contextMenu.taskIndex))
+
+        mainItem: ColumnLayout {
+            id: menuColumn
+            spacing: 0
+            Layout.minimumWidth: Kirigami.Units.gridUnit * 13
+
+            component Entry: QQC2.ItemDelegate {
+                Layout.fillWidth: true
+                icon.width: Kirigami.Units.iconSizes.smallMedium
+                icon.height: Kirigami.Units.iconSizes.smallMedium
+            }
+
+            // ---- modo ventana ----
+            QQC2.Label {
+                visible: contextMenu.windowMode
+                text: contextMenu.winTitle
+                elide: Text.ElideRight
+                font.bold: true
+                Layout.fillWidth: true
+                Layout.maximumWidth: Kirigami.Units.gridUnit * 18
+                Layout.margins: Kirigami.Units.smallSpacing
+            }
+            Entry {
+                visible: contextMenu.windowMode
+                text: i18n("Traer al frente")
+                icon.name: "window"
+                onClicked: contextMenu.run(() => tasksModel.requestActivate(contextMenu.winIdx))
+            }
+            Entry {
+                visible: contextMenu.windowMode
+                text: contextMenu.winMinimized ? i18n("Restaurar") : i18n("Minimizar")
+                icon.name: contextMenu.winMinimized ? "window-restore" : "window-minimize"
+                onClicked: contextMenu.run(() => tasksModel.requestToggleMinimized(contextMenu.winIdx))
+            }
+            Entry {
+                visible: contextMenu.windowMode
+                text: contextMenu.winMaximized ? i18n("Dejar de maximizar") : i18n("Maximizar")
+                icon.name: contextMenu.winMaximized ? "window-restore" : "window-maximize"
+                onClicked: contextMenu.run(() => tasksModel.requestToggleMaximized(contextMenu.winIdx))
+            }
+            Entry {
+                visible: contextMenu.windowMode
+                text: contextMenu.winAbove ? i18n("Dejar de mantener encima") : i18n("Mantener encima")
+                icon.name: "window-keep-above"
+                onClicked: contextMenu.run(() => tasksModel.requestToggleKeepAbove(contextMenu.winIdx))
+            }
+            Kirigami.Separator { Layout.fillWidth: true; visible: contextMenu.windowMode }
+            Entry {
+                visible: contextMenu.windowMode
+                text: i18n("Cerrar ventana")
+                icon.name: "window-close"
+                onClicked: contextMenu.run(() => tasksModel.requestClose(contextMenu.winIdx))
+            }
+
+            // ---- modo app ----
+            Entry {
+                visible: !contextMenu.windowMode
+                text: i18n("Nueva ventana")
+                icon.name: "window-new"
+                onClicked: contextMenu.run(() =>
+                    tasksModel.requestNewInstance(tasksModel.makeModelIndex(contextMenu.taskIndex)))
+            }
+            Repeater {
+                model: contextMenu.appActions
+                delegate: Entry {
+                    required property var modelData
+                    text: modelData.name
+                    icon.name: modelData.icon
+                    // setsid -f: la app queda desligada de plasmashell.
+                    onClicked: contextMenu.run(() =>
+                        exec.connectSource("setsid -f sh -c " + root.shellQuote(modelData.exec)))
+                }
+            }
+            Kirigami.Separator { Layout.fillWidth: true; visible: !contextMenu.windowMode }
+            Entry {
+                visible: !contextMenu.windowMode
+                text: contextMenu.isLauncher ? i18n("Quitar del dock") : i18n("Fijar al dock")
+                icon.name: contextMenu.isLauncher ? "window-unpin" : "window-pin"
+                onClicked: contextMenu.run(() => {
+                    const t = repeater.itemAt(contextMenu.taskIndex)
+                    if (!t) return
+                    if (contextMenu.isLauncher) tasksModel.requestRemoveLauncher(t.launcherUrl)
+                    else tasksModel.requestAddLauncher(t.launcherUrl)
+                })
+            }
+            Entry {
+                visible: !contextMenu.windowMode
+                text: contextMenu.excluded ? i18n("Volver a mostrar insignias y audio")
+                                           : i18n("Sin insignias ni audio para esta app")
+                icon.name: "notifications-disabled"
+                enabled: contextMenu.entry !== ""
+                onClicked: contextMenu.run(() => root.toggleAppExcluded(contextMenu.entry))
+            }
+            Kirigami.Separator { Layout.fillWidth: true; visible: !contextMenu.isLauncher && !contextMenu.windowMode }
+            Entry {
+                visible: !contextMenu.isLauncher && !contextMenu.windowMode
+                text: i18n("Cerrar")
+                icon.name: "window-close"
+                onClicked: contextMenu.run(() =>
+                    tasksModel.requestClose(tasksModel.makeModelIndex(contextMenu.taskIndex)))
+            }
         }
     }
 }
