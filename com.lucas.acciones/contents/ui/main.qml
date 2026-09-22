@@ -25,6 +25,13 @@ PlasmoidItem {
     readonly property color downColor: "#f87171"
     readonly property color neutralColor: "#e5e7eb"
 
+    // Anchos de columna fijos y compartidos entre el encabezado y cada fila, para que alineen entre sí.
+    readonly property real symColW: Kirigami.Units.gridUnit * 4.2
+    readonly property real arsColW: Kirigami.Units.gridUnit * 5.5
+    readonly property real usdColW: Kirigami.Units.gridUnit * 4.2
+    readonly property real chgColW: Kirigami.Units.gridUnit * 3.2
+    readonly property real removeColW: Kirigami.Units.gridUnit * 1.6
+
     property var symbols: []
     property var quotes: ({})
     property real cclRate: 0
@@ -250,9 +257,9 @@ PlasmoidItem {
     fullRepresentation: Item {
         id: view
 
-        Layout.minimumWidth: Kirigami.Units.gridUnit * 16
+        Layout.minimumWidth: Kirigami.Units.gridUnit * 20
         Layout.minimumHeight: Kirigami.Units.gridUnit * 12
-        Layout.preferredWidth: Kirigami.Units.gridUnit * 20
+        Layout.preferredWidth: Kirigami.Units.gridUnit * 24
         Layout.preferredHeight: Kirigami.Units.gridUnit * 16
 
         Rectangle {
@@ -282,6 +289,41 @@ PlasmoidItem {
                 }
             }
 
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.leftMargin: Kirigami.Units.smallSpacing
+                Layout.rightMargin: Kirigami.Units.smallSpacing
+                spacing: Kirigami.Units.smallSpacing
+                visible: root.symbols.length > 0
+
+                Item { Layout.preferredWidth: root.symColW }
+                GlassText {
+                    Layout.preferredWidth: root.arsColW
+                    horizontalAlignment: Text.AlignRight
+                    text: "ARS"
+                    font.pixelSize: Kirigami.Units.gridUnit * 0.6
+                    font.bold: false
+                    opacity: 0.5
+                }
+                GlassText {
+                    Layout.preferredWidth: root.usdColW
+                    horizontalAlignment: Text.AlignRight
+                    text: "USD"
+                    font.pixelSize: Kirigami.Units.gridUnit * 0.6
+                    font.bold: false
+                    opacity: 0.5
+                }
+                GlassText {
+                    Layout.preferredWidth: root.chgColW
+                    horizontalAlignment: Text.AlignRight
+                    text: "VAR"
+                    font.pixelSize: Kirigami.Units.gridUnit * 0.6
+                    font.bold: false
+                    opacity: 0.5
+                }
+                Item { Layout.preferredWidth: root.removeColW }
+            }
+
             ListView {
                 id: listView
                 Layout.fillWidth: true
@@ -304,30 +346,32 @@ PlasmoidItem {
                     anchors.margins: Kirigami.Units.smallSpacing
 
                     GlassText {
-                        Layout.preferredWidth: Kirigami.Units.gridUnit * 4.5
+                        Layout.preferredWidth: root.symColW
+                        elide: Text.ElideRight
                         text: sym
                         font.pixelSize: Kirigami.Units.gridUnit * 0.8
                     }
 
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 0
-                        GlassText {
-                            font.bold: false
-                            font.pixelSize: Kirigami.Units.gridUnit * 0.75
-                            text: q && !q.error ? root.fmtARS(root.priceARS(sym)) : (q && q.error ? "error" : "cargando…")
-                            opacity: 0.95
-                        }
-                        GlassText {
-                            font.bold: false
-                            font.pixelSize: Kirigami.Units.gridUnit * 0.65
-                            text: q && !q.error ? root.fmtUSD(root.priceUSD(sym)) : ""
-                            opacity: 0.7
-                        }
+                    GlassText {
+                        Layout.preferredWidth: root.arsColW
+                        horizontalAlignment: Text.AlignRight
+                        font.bold: false
+                        font.pixelSize: Kirigami.Units.gridUnit * 0.75
+                        text: q && !q.error ? root.fmtARS(root.priceARS(sym)) : (q && q.error ? "error" : "…")
+                        opacity: 0.95
                     }
 
                     GlassText {
-                        Layout.preferredWidth: Kirigami.Units.gridUnit * 3
+                        Layout.preferredWidth: root.usdColW
+                        horizontalAlignment: Text.AlignRight
+                        font.bold: false
+                        font.pixelSize: Kirigami.Units.gridUnit * 0.7
+                        text: q && !q.error ? root.fmtUSD(root.priceUSD(sym)) : ""
+                        opacity: 0.7
+                    }
+
+                    GlassText {
+                        Layout.preferredWidth: root.chgColW
                         horizontalAlignment: Text.AlignRight
                         font.pixelSize: Kirigami.Units.gridUnit * 0.75
                         visible: q && !q.error
@@ -337,7 +381,7 @@ PlasmoidItem {
 
                     QQC2.ToolButton {
                         icon.name: "list-remove"
-                        Layout.preferredWidth: Kirigami.Units.gridUnit * 1.6
+                        Layout.preferredWidth: root.removeColW
                         onClicked: root.removeSymbol(sym)
                     }
                     }
