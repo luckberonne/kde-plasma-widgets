@@ -11,8 +11,15 @@ PlasmoidItem {
 
     Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground
 
-    switchWidth: Kirigami.Units.gridUnit * 14
-    switchHeight: Kirigami.Units.gridUnit * 6
+    // Umbrales bajos: en el escritorio siempre se ve completo; en un panel, icono con desplegable.
+    switchWidth: Kirigami.Units.gridUnit * 4
+    switchHeight: Kirigami.Units.gridUnit * 4
+
+    // En un panel se muestra dentro del desplegable de Plasma (con su tema);
+    // en el escritorio, con el estilo glass propio.
+    readonly property bool inPopup: Plasmoid.location !== PlasmaCore.Types.Floating
+    readonly property color fg: inPopup ? Kirigami.Theme.textColor : "white"
+    readonly property color cardColor: inPopup ? Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.08) : "#26ffffff"
 
     readonly property color upColor: "#4ade80"
     readonly property color downColor: "#f87171"
@@ -150,54 +157,61 @@ PlasmoidItem {
         onTriggered: root.refreshAll()
     }
 
+    readonly property real avgChange: {
+        var vals = []
+        for (var k in root.quotes) if (!root.quotes[k].error) vals.push(root.quotes[k].changePct)
+        if (!vals.length) return 0
+        var sum = 0
+        for (var i = 0; i < vals.length; i++) sum += vals[i]
+        return sum / vals.length
+    }
+
+    readonly property int attentionCount: root.symbols.length
+
     component GlassText: Text {
-        color: "white"
-        font.bold: true
-        layer.enabled: true
+        color: root.fg
+        elide: Text.ElideRight
+        layer.enabled: !root.inPopup
         layer.effect: DropShadow {
-            horizontalOffset: 0
             verticalOffset: 1
-            radius: 6
-            samples: 13
-            color: "#cc000000"
+            radius: 5
+            samples: 11
+            color: "#aa000000"
         }
     }
 
     compactRepresentation: Item {
-        id: compact
-        readonly property bool vertical: Plasmoid.formFactor === PlasmaCore.Types.Vertical
-        readonly property real avgChange: {
-            var vals = []
-            for (var k in root.quotes) if (!root.quotes[k].error) vals.push(root.quotes[k].changePct)
-            if (!vals.length) return 0
-            var sum = 0
-            for (var i = 0; i < vals.length; i++) sum += vals[i]
-            return sum / vals.length
+        Layout.minimumWidth: Kirigami.Units.iconSizes.small
+        Layout.minimumHeight: Kirigami.Units.iconSizes.small
+        Layout.preferredWidth: Kirigami.Units.iconSizes.medium
+        Layout.preferredHeight: Kirigami.Units.iconSizes.medium
+
+        Kirigami.Icon {
+            anchors.fill: parent
+            source: "view-financial-account"
         }
 
-        Layout.minimumWidth: vertical ? Kirigami.Units.gridUnit * 3 : label.implicitWidth + Kirigami.Units.smallSpacing * 2
-        Layout.minimumHeight: Kirigami.Units.gridUnit * 2
-        Layout.preferredWidth: Layout.minimumWidth
-        Layout.preferredHeight: Layout.minimumHeight
+        Rectangle {
+            visible: root.symbols.length > 0
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            width: Math.max(height, badge.implicitWidth + 6)
+            height: Math.max(12, parent.height * 0.42)
+            radius: height / 2
+            color: root.avgChange >= 0 ? root.upColor : root.downColor
+            Text {
+                id: badge
+                anchors.centerIn: parent
+                text: (root.avgChange >= 0 ? "▲" : "▼") + Math.abs(root.avgChange).toFixed(1) + "%"
+                color: "#1a1a1a"
+                font.bold: true
+                font.pixelSize: parent.height * 0.6
+            }
+        }
 
         MouseArea {
             anchors.fill: parent
             onClicked: Plasmoid.expanded = !Plasmoid.expanded
-        }
-
-        GlassText {
-            id: label
-            anchors.centerIn: parent
-            horizontalAlignment: Text.AlignHCenter
-            font.pixelSize: Math.max(9, Math.min(compact.height * 0.36, 14))
-            textFormat: Text.RichText
-            text: {
-                var color = compact.avgChange >= 0 ? root.upColor : root.downColor
-                var arrow = compact.avgChange >= 0 ? "▲" : "▼"
-                return root.symbols.length
-                    ? "<span style='color:" + color + "'>" + arrow + " " + Math.abs(compact.avgChange).toFixed(1) + "%</span>"
-                    : "Acciones"
-            }
         }
     }
 
@@ -208,6 +222,14 @@ PlasmoidItem {
         Layout.minimumHeight: Kirigami.Units.gridUnit * 12
         Layout.preferredWidth: Kirigami.Units.gridUnit * 20
         Layout.preferredHeight: Kirigami.Units.gridUnit * 16
+
+        Rectangle {
+            visible: !root.inPopup
+            anchors.fill: parent
+            radius: Kirigami.Units.largeSpacing
+            color: "#66000000"
+            border.color: "#33ffffff"
+        }
 
         ColumnLayout {
             anchors.fill: parent
@@ -236,10 +258,18 @@ PlasmoidItem {
                 model: root.symbols
                 spacing: Kirigami.Units.smallSpacing
 
-                delegate: RowLayout {
+                delegate: Rectangle {
                     width: listView.width
+                    height: row.implicitHeight + Kirigami.Units.smallSpacing * 2
+                    radius: Kirigami.Units.mediumSpacing
+                    color: root.cardColor
                     property string sym: modelData
                     property var q: root.quotes[sym]
+
+                    RowLayout {
+                    id: row
+                    anchors.fill: parent
+                    anchors.margins: Kirigami.Units.smallSpacing
 
                     GlassText {
                         Layout.preferredWidth: Kirigami.Units.gridUnit * 4.5
@@ -277,6 +307,7 @@ PlasmoidItem {
                         icon.name: "list-remove"
                         Layout.preferredWidth: Kirigami.Units.gridUnit * 1.6
                         onClicked: root.removeSymbol(sym)
+                    }
                     }
                 }
             }
