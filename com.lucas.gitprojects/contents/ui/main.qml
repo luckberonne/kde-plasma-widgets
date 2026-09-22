@@ -207,12 +207,12 @@ PlasmoidItem {
         exec.connectSource("setsid -f " + cmd + " >/dev/null 2>&1 #" + Date.now())
     }
 
-    // zsh si está instalado, si no el shell por defecto ($SHELL).
+    // fish si está instalado, si no el shell por defecto ($SHELL).
     function openTerminal(path) { launch("konsole --workdir " + shq(path) + " -e sh " + shq(root.openShellScript) + " " + shq("")) }
     function openEditor(path) { launch((Plasmoid.configuration.editorCommand || "code-oss") + " " + shq(path)) }
 
     // Terminal en la carpeta del proyecto, corriendo Claude Code.
-    // open-shell.sh usa zsh si está instalado, o el shell por defecto ($SHELL) si no,
+    // open-shell.sh usa fish si está instalado, o el shell por defecto ($SHELL) si no,
     // y deja la shell abierta al salir de Claude.
     function openClaude(path, args) {
         var cmd = (Plasmoid.configuration.claudeCommand || "claude") + (args ? " " + args : "")
