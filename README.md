@@ -224,6 +224,19 @@ Botón para el panel que abre GNOME Network Displays y transmite la pantalla a u
 - `flatpak` y la app `org.gnome.NetworkDisplays` de Flathub (`flatpak install --user flathub org.gnome.NetworkDisplays`).
 - Para Miracast, una placa Wi‑Fi con soporte P2P y `wpa_supplicant`; para Chromecast, estar en la misma red.
 
+## Acciones y CEDEARs (`com.lucas.acciones`)
+
+Cotizaciones en vivo de acciones y CEDEARs, en pesos y en dólares.
+
+- Lista de símbolos totalmente editable desde el propio widget: campo de texto para agregar (ej. `GGAL.BA`, `AAPL`) y botón para quitar cada uno, sin entrar a la configuración.
+- Precio en pesos y su conversión aproximada a dólares (o viceversa) usando el dólar contado con liquidación, y variación porcentual del día con color e icono de suba/baja.
+- Representación compacta para el panel (variación promedio de la cartera) y completa para el escritorio.
+- Configurable: intervalo de actualización.
+
+### Requisitos
+
+- Conexión a internet: consulta la cotización a Yahoo Finance y el dólar CCL a [dolarapi.com](https://dolarapi.com), ambas de acceso público y sin necesidad de API key.
+
 ## Tema Plasma Glass (`themes/Glass`)
 
 Estilo de Plasma basado en Breeze con paneles, desplegables, notificaciones y tooltips de vidrio: fondo translúcido con el desenfoque de KWin.
@@ -251,6 +264,7 @@ cp -r com.lucas.digitalclock ~/.local/share/plasma/plasmoids/
 cp -r com.lucas.sysmonitor ~/.local/share/plasma/plasmoids/
 cp -r com.lucas.glassdock ~/.local/share/plasma/plasmoids/
 cp -r com.lucas.paneltransparente ~/.local/share/plasma/plasmoids/
+cp -r com.lucas.acciones ~/.local/share/plasma/plasmoids/
 ```
 
 Reiniciá Plasma para que aparezcan en el selector de widgets:

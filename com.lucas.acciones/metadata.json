@@ -1,0 +1,21 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Lucas"
+            }
+        ],
+        "Category": "System Information",
+        "Description": "Cotizaciones en vivo de acciones y CEDEARs, en pesos y dólares, con lista editable desde el propio widget",
+        "Description[es]": "Cotizaciones en vivo de acciones y CEDEARs, en pesos y dólares, con lista editable desde el propio widget",
+        "EnabledByDefault": true,
+        "Icon": "view-financial-account",
+        "Id": "com.lucas.acciones",
+        "License": "MIT",
+        "Name": "Stocks & CEDEARs (Scenic)",
+        "Name[es]": "Acciones y CEDEARs",
+        "Version": "1.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}
