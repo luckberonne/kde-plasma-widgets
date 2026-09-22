@@ -117,6 +117,7 @@ PlasmoidItem {
     }
     readonly property string scriptPath: localPath(Qt.resolvedUrl("../code/repos.sh"))
     readonly property string historyScript: localPath(Qt.resolvedUrl("../code/history.sh"))
+    readonly property string openShellScript: localPath(Qt.resolvedUrl("../code/open-shell.sh"))
 
     function shq(s) { return "'" + String(s).replace(/'/g, "'\\''") + "'" }
 
@@ -206,14 +207,16 @@ PlasmoidItem {
         exec.connectSource("setsid -f " + cmd + " >/dev/null 2>&1 #" + Date.now())
     }
 
-    function openTerminal(path) { launch("konsole --workdir " + shq(path)) }
+    // zsh si está instalado, si no el shell por defecto ($SHELL).
+    function openTerminal(path) { launch("konsole --workdir " + shq(path) + " -e sh " + shq(root.openShellScript) + " " + shq("")) }
     function openEditor(path) { launch((Plasmoid.configuration.editorCommand || "code-oss") + " " + shq(path)) }
 
-    // Terminal (Konsole con fish) en la carpeta del proyecto, corriendo Claude Code.
-    // "fish -C" ejecuta el comando al iniciar y deja la shell abierta al salir de Claude.
+    // Terminal en la carpeta del proyecto, corriendo Claude Code.
+    // open-shell.sh usa zsh si está instalado, o el shell por defecto ($SHELL) si no,
+    // y deja la shell abierta al salir de Claude.
     function openClaude(path, args) {
         var cmd = (Plasmoid.configuration.claudeCommand || "claude") + (args ? " " + args : "")
-        launch("konsole --workdir " + shq(path) + " -e fish -C " + shq(cmd))
+        launch("konsole --workdir " + shq(path) + " -e sh " + shq(root.openShellScript) + " " + shq(cmd))
     }
     function openFolder(path) { launch("xdg-open " + shq(path)) }
 
@@ -507,7 +510,7 @@ PlasmoidItem {
                                 QQC2.ToolButton {
                                     icon.name: "utilities-terminal"
                                     onClicked: root.openTerminal(r.path)
-                                    QQC2.ToolTip.text: "Abrir terminal aquí (fish)"
+                                    QQC2.ToolTip.text: "Abrir terminal aquí"
                                     QQC2.ToolTip.visible: hovered
                                 }
                                 QQC2.ToolButton {
