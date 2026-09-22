@@ -229,8 +229,9 @@ Botón para el panel que abre GNOME Network Displays y transmite la pantalla a u
 Cotizaciones en vivo de acciones y CEDEARs, en pesos y en dólares.
 
 - Lista de símbolos totalmente editable desde el propio widget: campo de texto para agregar (ej. `GGAL.BA`, `AAPL`) y botón para quitar cada uno, sin entrar a la configuración.
+- Autocompletado al escribir: sugiere símbolos y sus nombres a medida que tipeás, con un clic para agregarlo.
 - Precio en pesos y su conversión aproximada a dólares (o viceversa) usando el dólar contado con liquidación, y variación porcentual del día con color e icono de suba/baja.
-- Representación compacta para el panel (variación promedio de la cartera) y completa para el escritorio.
+- Representación compacta para el panel (icono con insignia de color según la variación promedio, desplegable con el tema nativo de Plasma) y tarjeta de vidrio para el escritorio, mismo estilo que Proyectos.
 - Configurable: intervalo de actualización.
 
 ### Requisitos

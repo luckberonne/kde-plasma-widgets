@@ -29,6 +29,8 @@ PlasmoidItem {
     property var quotes: ({})
     property real cclRate: 0
     property bool loading: false
+    property var suggestions: []
+    property string suggestQuery: ""
 
     toolTipMainText: "Acciones y CEDEARs"
     toolTipSubText: root.symbols.length ? root.symbols.join(", ") : "sin símbolos"
@@ -112,6 +114,36 @@ PlasmoidItem {
             }
         }
         xhr.open("GET", "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(sym) + "?interval=1d&range=1d")
+        xhr.setRequestHeader("User-Agent", "Mozilla/5.0")
+        xhr.send()
+    }
+
+    function searchSymbols(query) {
+        query = (query || "").trim()
+        root.suggestQuery = query
+        if (query.length < 2) {
+            root.suggestions = []
+            return
+        }
+        var xhr = new XMLHttpRequest()
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState !== XMLHttpRequest.DONE) return
+            if (xhr.status !== 200) return
+            if (root.suggestQuery !== query) return
+            try {
+                var data = JSON.parse(xhr.responseText)
+                var list = []
+                var qs = data.quotes || []
+                for (var i = 0; i < qs.length && list.length < 6; i++) {
+                    var it = qs[i]
+                    if (!it.symbol) continue
+                    if (it.quoteType !== "EQUITY" && it.quoteType !== "ETF") continue
+                    list.push({ symbol: it.symbol, name: it.shortname || it.longname || it.symbol, exch: it.exchDisp || "" })
+                }
+                root.suggestions = list
+            } catch (e) {}
+        }
+        xhr.open("GET", "https://query1.finance.yahoo.com/v1/finance/search?q=" + encodeURIComponent(query) + "&quotesCount=6&newsCount=0")
         xhr.setRequestHeader("User-Agent", "Mozilla/5.0")
         xhr.send()
     }
@@ -320,9 +352,68 @@ PlasmoidItem {
                     id: addField
                     Layout.fillWidth: true
                     placeholderText: i18n("Agregar ticker (ej: GGAL.BA, AAPL)")
+                    onTextChanged: {
+                        if (text.trim().length >= 2) searchDebounce.restart()
+                        else { searchDebounce.stop(); root.suggestions = [] }
+                    }
                     onAccepted: {
                         root.addSymbol(text)
                         text = ""
+                        root.suggestions = []
+                    }
+                    Keys.onEscapePressed: root.suggestions = []
+
+                    Timer {
+                        id: searchDebounce
+                        interval: 350
+                        onTriggered: root.searchSymbols(addField.text)
+                    }
+
+                    QQC2.Popup {
+                        id: suggestPopup
+                        y: addField.height
+                        width: addField.width
+                        padding: 2
+                        visible: root.suggestions.length > 0
+                        closePolicy: QQC2.Popup.NoAutoClose
+
+                        background: Rectangle {
+                            color: root.inPopup ? Kirigami.Theme.backgroundColor : "#e6141414"
+                            border.color: root.inPopup ? Kirigami.Theme.separatorColor : "#33ffffff"
+                            radius: 4
+                        }
+
+                        contentItem: ListView {
+                            implicitHeight: Math.min(root.suggestions.length, 6) * (Kirigami.Units.gridUnit * 2)
+                            clip: true
+                            model: root.suggestions
+
+                            delegate: QQC2.ItemDelegate {
+                                width: ListView.view.width
+                                contentItem: ColumnLayout {
+                                    spacing: 0
+                                    Text {
+                                        text: modelData.symbol
+                                        color: root.inPopup ? Kirigami.Theme.textColor : "white"
+                                        font.bold: true
+                                    }
+                                    Text {
+                                        text: modelData.name + (modelData.exch ? " · " + modelData.exch : "")
+                                        color: root.inPopup ? Kirigami.Theme.textColor : "white"
+                                        opacity: 0.7
+                                        font.pixelSize: Kirigami.Units.gridUnit * 0.65
+                                        elide: Text.ElideRight
+                                        Layout.fillWidth: true
+                                    }
+                                }
+                                onClicked: {
+                                    root.addSymbol(modelData.symbol)
+                                    root.suggestions = []
+                                    addField.text = ""
+                                    addField.forceActiveFocus()
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -331,6 +422,7 @@ PlasmoidItem {
                     onClicked: {
                         root.addSymbol(addField.text)
                         addField.text = ""
+                        root.suggestions = []
                     }
                 }
             }
