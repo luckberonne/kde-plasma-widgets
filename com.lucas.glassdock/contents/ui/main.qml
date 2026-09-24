@@ -666,9 +666,20 @@ PlasmoidItem {
         return pushMax * Math.sin(d * Math.PI) * (delta < 0 ? -1 : 1)
     }
 
+    // El icono bajo el puntero según lo que se DIBUJA (con zoom y empuje de los
+    // vecinos), no según las celdas base: si no, con muchas apps el icono que ves
+    // debajo del cursor no es el que recibe el clic. Se elige el centro visual más
+    // cercano; `pointer` ya es el del evento en curso, así offsetAt() coincide.
     function indexAt(pos) {
-        const i = Math.floor((pos - edgePad) / cell)
-        return (i >= 0 && i < tasksModel.count) ? i : -1
+        const n = tasksModel.count
+        if (pos < edgePad || pos > edgePad + n * cell) return -1
+        let best = -1
+        let bestDist = Infinity
+        for (let i = 0; i < n; i++) {
+            const d = Math.abs(pos - (baseCenter(i) + offsetAt(i)))
+            if (d < bestDist) { bestDist = d; best = i }
+        }
+        return best
     }
 
     // ---------- interacción ----------
@@ -697,8 +708,8 @@ PlasmoidItem {
         function updateTarget(x, y) {
             exitGraceTimer.stop()
             const pos = root.vertical ? y : x
-            const i = root.indexAt(pos)
             root.pointer = pos          // el dock también se magnifica al arrastrar
+            const i = root.indexAt(pos)
             if (i !== root.dropIndex) {
                 root.dropIndex = i
                 springTimer.stop()
